@@ -71,8 +71,8 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:'Syne',sa
 .pp-restore{margin-top:12px;font-family:'DM Mono',monospace;font-size:11px;color:var(--a2);cursor:pointer;text-decoration:underline;}
 
 /* APP SHELL */
-#app{position:relative;z-index:1;height:100%;display:flex;flex-direction:column;display:none;}
-.page{display:none;flex:1;overflow-y:auto;overflow-x:hidden;padding:20px 16px calc(env(safe-area-inset-bottom,0px) + 120px);-webkit-overflow-scrolling:touch;}
+#app{position:relative;z-index:1;height:100%;width:100%;display:flex;flex-direction:column;display:none;}
+.page{display:none;flex:1;overflow-y:auto;overflow-x:hidden;padding:20px 16px calc(env(safe-area-inset-bottom,0px) + 120px);-webkit-overflow-scrolling:touch;width:100%;max-width:100%;box-sizing:border-box;}
 .page.active{display:flex;flex-direction:column;}
 .page::-webkit-scrollbar{display:none;}
 
@@ -100,10 +100,10 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:'Syne',sa
 /* HOME — BALANCE CARD */
 .bal-card{background:#1e3028;border:none;border-radius:20px;padding:20px;margin-bottom:12px;}
 .bal-label{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.15em;color:rgba(255,255,255,0.45);text-transform:uppercase;margin-bottom:12px;}
-.bal-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
-.bstat{background:var(--s2);border-radius:12px;padding:11px 12px;border:1px solid var(--border);}.bal-card .bstat{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.1);}
+.bal-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1fr);gap:8px;}
+.bstat{background:var(--s2);border-radius:12px;padding:11px 12px;border:1px solid var(--border);min-width:0;overflow:hidden;}.bal-card .bstat{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.1);}
 .bstat-lbl{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;margin-bottom:3px;}.bal-card .bstat-lbl{color:rgba(255,255,255,0.5);}
-.bstat-val{font-size:16px;font-weight:700;}
+.bstat-val{font-size:14px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .inc{color:var(--accent);}.bal-card .inc{color:#7ec898;}
 .exp{color:var(--red);}.bal-card .exp{color:#e88080;}
 
@@ -123,8 +123,8 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:'Syne',sa
 .insight-dot{width:7px;height:7px;border-radius:50%;background:var(--accent);animation:pulse 2s infinite;}
 .insight-lbl{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.1em;color:var(--accent);text-transform:uppercase;}
 .insight-txt{font-size:13px;line-height:1.65;}
-.insight-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:12px;}
-.ic{background:var(--s1);border:1px solid var(--border2);border-radius:11px;padding:10px 12px;}
+.insight-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:7px;margin-top:12px;}
+.ic{background:var(--s1);border:1px solid var(--border2);border-radius:11px;padding:10px 12px;min-width:0;}
 .ic-lbl{font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:.07em;text-transform:uppercase;margin-bottom:4px;}
 .ic-val{font-size:14px;font-weight:700;color:var(--text);}
 .ic-val.good{color:var(--accent);}
@@ -139,9 +139,9 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:'Syne',sa
 .insight-badge.good{background:rgba(74,122,88,0.1);color:var(--accent);}
 .insight-badge.warn{background:rgba(200,112,48,0.1);color:var(--orange);}
 .insight-badge.bad{background:rgba(192,64,64,0.08);color:var(--red);}
-.ic{background:var(--s2);border-radius:9px;padding:9px 10px;border:1px solid var(--border);}
+.ic{background:var(--s2);border-radius:9px;padding:9px 10px;border:1px solid var(--border);min-width:0;}
 .ic-lbl{font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);margin-bottom:2px;}
-.ic-val{font-size:12px;font-weight:700;}
+.ic-val{font-size:12px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 
 /* MONTH PILLS */
 .month-row{display:flex;gap:6px;overflow-x:auto;margin-bottom:12px;padding:2px 0 6px;}
@@ -150,8 +150,8 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:'Syne',sa
 .mpill.active{background:rgba(74,122,88,0.12);color:var(--accent);border-color:var(--accent);font-weight:600;}
 
 /* CAT GRID */
-.cat-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:12px;}
-.cat-card{background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:12px;}
+.cat-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:9px;margin-bottom:12px;}
+.cat-card{background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:12px;min-width:0;overflow:hidden;}
 .cat-icon{font-size:18px;margin-bottom:6px;}
 .cat-name{font-size:12px;font-weight:700;margin-bottom:2px;}
 .cat-amt{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:6px;}
@@ -801,7 +801,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:'Syne',sa
       <button onclick="doGiftLoan('gift')" style="padding:18px;border-radius:14px;border:1px solid var(--border);background:var(--s2);color:var(--text);font-family:'Syne',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">🎁<br><strong>Gift</strong><br><span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);">No payback expected</span></button>
       <button onclick="doGiftLoan('loan')" style="padding:18px;border-radius:14px;border:1px solid rgba(74,122,88,.3);background:rgba(74,122,88,.07);color:var(--text);font-family:'Syne',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">🤝<br><strong>Loan</strong><br><span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--accent);">They'll return it</span></button>
     </div>
-    <button class="btn-cancel" style="width:100%;" onclick="closeModal('giftLoanModal')">Cancel — just log as expense</button>
+    <button class="btn-cancel" style="width:100%;" onclick="cancelGiftLoan()">Cancel — just log as expense</button>
   </div>
 </div>
 
@@ -1280,6 +1280,9 @@ function hideToast(){const t=document.getElementById('vaultToast');if(t){t.style
 // ─── SMART INPUT ──────────────────────────────────────────
 
 function parseSmartInput(val) {
+  // Always clear stale flags at start of each parse — prevents leakage across entries
+  const _descElClear=document.getElementById('txDesc');
+  if(_descElClear&&_descElClear.dataset){delete _descElClear.dataset.isGiving;delete _descElClear.dataset.isBorrow;}
   if(!val.trim()){document.getElementById('smartPreview').classList.remove('show');const _pb=document.getElementById('parseBar');if(_pb)_pb.classList.remove('pb-show');return;}
   // Strip commas inside numbers (₹1,850 → ₹1850, 1,50,000 → 150000)
   const rawNorm = val.trim().replace(/\brs\.?\s*/gi, '₹');
@@ -1443,7 +1446,7 @@ function parseSmartInput(val) {
     'mila','mili','mile','aayi','aaya','nikala','nikale','nikali','nikalta','nikaala','bharaya','bhara','kata','katega',
     'naqad','naqd','kharcha','kharch','kharche','kharchi',
     // missed expense verbs
-    'deducted','deduct','debited','charged','cut'
+    'deducted','deduct','debited','charged','cut','display','screen','qr','qrcode','scan','scanner','swipe','tap','click'
   ]);
   const dTok=tokens.filter((t,i)=>{
     const n=_pa(t);
@@ -2843,6 +2846,18 @@ function doGiftLoan(choice){
   }
   window._pendingTx=null;
 }
+
+function cancelGiftLoan(){
+  closeModal('giftLoanModal');
+  const tx=window._pendingTx;
+  if(!tx)return;
+  // Save as plain expense — no gift/loan routing
+  saveTx({...tx,id:Date.now()});
+  window._pendingTx=null;
+  clearForm();buildMonthFilter();render();renderSubs();
+  showToast('✅ Saved as expense');
+}
+
 
 function toggleLock(){
   if(lockEnabled){
