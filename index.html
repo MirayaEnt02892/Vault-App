@@ -30,7 +30,7 @@
   --blue:#3a6898;--purple:#7a68c8;
   --text:#1a221a;--muted:#607060;--faint:#a8b4a4;
 }
-html,body{height:100%;overflow:hidden;overflow-x:hidden;max-width:100vw;background:var(--bg);font-family:'Syne',sans-serif;color:var(--text);}html{touch-action:pan-y;}
+html,body{height:100%;overflow:hidden;background:var(--bg);font-family:'Syne',sans-serif;color:var(--text);}
 
 /* LOCK */
 #lockScreen{position:fixed;inset:0;z-index:600;background:var(--bg);display:none;flex-direction:column;align-items:center;justify-content:center;padding:32px;}
@@ -72,8 +72,8 @@ html,body{height:100%;overflow:hidden;overflow-x:hidden;max-width:100vw;backgrou
 
 /* APP SHELL */
 #app{position:relative;z-index:1;height:100%;width:100%;display:flex;flex-direction:column;display:none;}
-.page{display:none;flex:1;overflow-y:auto;overflow-x:hidden;padding:20px 0 calc(env(safe-area-inset-bottom,0px) + 120px);-webkit-overflow-scrolling:touch;width:100%;max-width:100vw;box-sizing:border-box;}
-.page.active{display:flex;flex-direction:column;align-items:stretch;}.page.active>*{width:calc(100% - 32px);min-width:0;max-width:calc(100% - 32px);box-sizing:border-box;margin-left:16px;margin-right:16px;}
+.page{display:none;flex:1;overflow-y:auto;overflow-x:hidden;padding:20px 16px calc(env(safe-area-inset-bottom,0px) + 120px);-webkit-overflow-scrolling:touch;width:100%;box-sizing:border-box;}
+.page.active{display:block;}
 .page::-webkit-scrollbar{display:none;}
 
 /* NAV */
@@ -118,7 +118,7 @@ html,body{height:100%;overflow:hidden;overflow-x:hidden;max-width:100vw;backgrou
 .bbar-sub{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);}
 
 /* INSIGHT */
-.insight-card{background:linear-gradient(135deg,rgba(74,122,88,.06),rgba(58,104,152,.04));border:1px solid rgba(74,122,88,.15);border-radius:16px;padding:14px;margin-bottom:12px;width:100%;box-sizing:border-box;overflow:hidden;}
+.insight-card{background:linear-gradient(135deg,rgba(74,122,88,.06),rgba(58,104,152,.04));border:1px solid rgba(74,122,88,.15);border-radius:16px;padding:14px;margin-bottom:12px;width:100%;box-sizing:border-box;}
 .insight-hdr{display:flex;align-items:center;gap:7px;margin-bottom:7px;}
 .insight-dot{width:7px;height:7px;border-radius:50%;background:var(--accent);animation:pulse 2s infinite;}
 .insight-lbl{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.1em;color:var(--accent);text-transform:uppercase;}
@@ -405,7 +405,10 @@ html,body{height:100%;overflow:hidden;overflow-x:hidden;max-width:100vw;backgrou
   <div class="page active" id="page-home">
     <div class="hdr">
       <div class="logo">VAULT<span>.5</span></div>
-      <button class="icon-btn" onclick="exportCSV()">📤 CSV</button>
+      <div style="display:flex;gap:6px;">
+        <button class="icon-btn" onclick="debugOverflow()" style="font-size:10px;">🔍 DBG</button>
+        <button class="icon-btn" onclick="exportCSV()">📤 CSV</button>
+      </div>
     </div>
     <div class="bal-card">
       <div class="bal-label">This Month</div>
