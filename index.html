@@ -361,7 +361,10 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:'Syne',sa
 <div id="lockScreen">
   <div class="lock-icon">🔐</div>
   <div class="lock-title">VAULT is locked</div>
-  <div class="lock-sub">Enter your PIN to continue</div>
+  <div class="lock-sub" id="lockScreenSub">Enter your PIN to continue</div>
+  <button id="bioBtn" onclick="tryBiometric()" style="display:none;margin-bottom:20px;background:var(--accent);color:#fff;border:none;border-radius:16px;padding:14px 32px;font-family:'Syne',sans-serif;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:10px;">
+    <span style="font-size:22px;">🪪</span> Use Face ID / Fingerprint
+  </button>
   <div class="pin-dots" id="pinDots">
     <div class="pin-dot" id="pd0"></div><div class="pin-dot" id="pd1"></div>
     <div class="pin-dot" id="pd2"></div><div class="pin-dot" id="pd3"></div>
@@ -370,7 +373,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:'Syne',sa
     <button class="pin-btn" onclick="pinPress('1')">1</button><button class="pin-btn" onclick="pinPress('2')">2</button><button class="pin-btn" onclick="pinPress('3')">3</button>
     <button class="pin-btn" onclick="pinPress('4')">4</button><button class="pin-btn" onclick="pinPress('5')">5</button><button class="pin-btn" onclick="pinPress('6')">6</button>
     <button class="pin-btn" onclick="pinPress('7')">7</button><button class="pin-btn" onclick="pinPress('8')">8</button><button class="pin-btn" onclick="pinPress('9')">9</button>
-    <button class="pin-btn" onclick="tryBio()">⬡</button><button class="pin-btn" onclick="pinPress('0')">0</button><button class="pin-btn" onclick="pinDel()">⌫</button>
+    <button class="pin-btn" onclick="tryBiometric()" id="bioPadBtn">⬡</button><button class="pin-btn" onclick="pinPress('0')">0</button><button class="pin-btn" onclick="pinDel()">⌫</button>
   </div>
   <div class="lock-forgot" onclick="forgotPin()">Forgot PIN? Use passphrase</div>
 </div>
@@ -679,6 +682,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:'Syne',sa
         </div>
       </div>
       <div class="set-row"><div><div class="set-lbl">App Lock (PIN)</div><div class="set-sub" id="lockSub">Protect your finances</div></div><button class="set-action" id="lockBtn" onclick="toggleLock()">Enable</button></div>
+      <div class="set-row"><div><div class="set-lbl">Biometric Lock</div><div class="set-sub" id="bioLockSub">Use Face ID or fingerprint</div></div><button class="set-action" id="bioLockBtn" onclick="toggleBiometric()">Enable</button></div>
       <div class="set-row"><div><div class="set-lbl">Your Passphrase</div><div class="set-sub">Backup & restore key</div></div><button class="set-action" onclick="viewPP()">View</button></div>
     </div>
     <div class="settings-group">
@@ -1125,19 +1129,109 @@ const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov',
 const GOAL_COLORS=['#4a7a58','#3a6898','#c87030','#7a68c8','#c04040','#2a8850','#b05070','#c89020'];
 
 // ─── STATE ────────────────────────────────────────────────
-let txs=[],blRecords=[],goals=[],budget=10000,passphrase='',activeMonth='All',blTab='oweme',blType='oweme',txType='expense',investType='',selectedEmoji=0,activeGoalId=null,appLocked=false,pinEntry='',storedPin='',lockEnabled=false;
+let txs=[],blRecords=[],goals=[],budget=10000,passphrase='',activeMonth='All',blTab='oweme',blType='oweme',txType='expense',investType='',selectedEmoji=0,activeGoalId=null,appLocked=false,pinEntry='',storedPin='',lockEnabled=false,biometricEnabled=false;
 let _lastReceivedFrom=null; // {name, amt} for loan repayment prompt
 
 // ─── STORAGE ─────────────────────────────────────────────
 function save(){localStorage.setItem('v4_txs',JSON.stringify(txs));localStorage.setItem('v4_bl',JSON.stringify(blRecords));localStorage.setItem('v4_goals',JSON.stringify(goals));localStorage.setItem('v4_budget',budget);}
-function load(){txs=JSON.parse(localStorage.getItem('v4_txs')||'[]');blRecords=JSON.parse(localStorage.getItem('v4_bl')||'[]');goals=JSON.parse(localStorage.getItem('v4_goals')||'[]');budget=parseFloat(localStorage.getItem('v4_budget')||'10000');passphrase=localStorage.getItem('v4_pp')||'';storedPin=localStorage.getItem('v4_pin')||'';lockEnabled=localStorage.getItem('v4_lock')==='1';}
+function load(){txs=JSON.parse(localStorage.getItem('v4_txs')||'[]');blRecords=JSON.parse(localStorage.getItem('v4_bl')||'[]');goals=JSON.parse(localStorage.getItem('v4_goals')||'[]');budget=parseFloat(localStorage.getItem('v4_budget')||'10000');passphrase=localStorage.getItem('v4_pp')||'';storedPin=localStorage.getItem('v4_pin')||'';lockEnabled=localStorage.getItem('v4_lock')==='1';biometricEnabled=localStorage.getItem('v4_bio_enabled')==='1';}
 
 // ─── APP LOCK ─────────────────────────────────────────────
 function pinPress(d){if(pinEntry.length>=4)return;pinEntry+=d;updatePinDots();if(pinEntry.length===4)setTimeout(checkPin,80);}
 function pinDel(){pinEntry=pinEntry.slice(0,-1);updatePinDots();}
 function updatePinDots(){for(let i=0;i<4;i++){const el=document.getElementById('pd'+i);if(el)el.className='pin-dot'+(i<pinEntry.length?' filled':'');}}
 function checkPin(){if(pinEntry===storedPin){document.getElementById('lockScreen').classList.remove('show');appLocked=false;launchApp();}else{document.querySelectorAll('.pin-dot').forEach(d=>d.className='pin-dot error');document.getElementById('pinDots').style.animation='shake .4s ease';setTimeout(()=>{document.getElementById('pinDots').style.animation='';document.querySelectorAll('.pin-dot').forEach(d=>d.className='pin-dot');pinEntry='';},500);}};
-function tryBiometric(){if(!storedPin){pinEntry='0000';checkPin();return;}pinEntry=storedPin;checkPin();}
+// ─── WEBAUTHN BIOMETRIC ──────────────────────────────────
+function _bufToB64(buf){return btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');}
+function _b64ToBuf(b64){const s=atob(b64.replace(/-/g,'+').replace(/_/g,'/'));const b=new Uint8Array(s.length);for(let i=0;i<s.length;i++)b[i]=s.charCodeAt(i);return b.buffer;}
+function _bioAvailable(){return!!(window.PublicKeyCredential&&navigator.credentials);}
+
+async function registerBiometric(){
+  if(!_bioAvailable()){showToast('❌ Biometric not supported on this browser');return;}
+  if(!lockEnabled||!storedPin){showToast('⚠ Set a PIN first as fallback');openModal('setPinModal');return;}
+  try{
+    let uid=localStorage.getItem('v4_bio_uid');
+    if(!uid){uid=_bufToB64(crypto.getRandomValues(new Uint8Array(16)));localStorage.setItem('v4_bio_uid',uid);}
+    const cred=await navigator.credentials.create({publicKey:{
+      challenge:crypto.getRandomValues(new Uint8Array(32)),
+      rp:{id:location.hostname||'localhost',name:'VAULT'},
+      user:{id:_b64ToBuf(uid.padEnd(uid.length+((4-uid.length%4)%4),'=')),name:'vault_user',displayName:'VAULT User'},
+      pubKeyCredParams:[{type:'public-key',alg:-7},{type:'public-key',alg:-257}],
+      authenticatorSelection:{authenticatorAttachment:'platform',userVerification:'required',residentKey:'preferred'},
+      timeout:60000
+    }});
+    localStorage.setItem('v4_bio_cred',_bufToB64(cred.rawId));
+    localStorage.setItem('v4_bio_enabled','1');
+    biometricEnabled=true;
+    updateBioUI();
+    showToast('✅ Biometric lock enabled!');
+  }catch(e){
+    if(e.name==='NotAllowedError')showToast('❌ Permission denied or cancelled');
+    else if(e.name==='NotSupportedError')showToast('❌ Device does not support biometrics');
+    else showToast('❌ Could not enable biometric');
+  }
+}
+
+async function authenticateBiometric(){
+  const credId=localStorage.getItem('v4_bio_cred');
+  if(!credId||!_bioAvailable())return false;
+  try{
+    await navigator.credentials.get({publicKey:{
+      challenge:crypto.getRandomValues(new Uint8Array(32)),
+      rpId:location.hostname||'localhost',
+      allowCredentials:[{id:_b64ToBuf(credId.padEnd(credId.length+((4-credId.length%4)%4),'=')),type:'public-key'}],
+      userVerification:'required',
+      timeout:60000
+    }});
+    return true;
+  }catch(e){return false;}
+}
+
+async function tryBiometric(){
+  if(!biometricEnabled){return;}
+  const el=document.getElementById('bioBtn');
+  if(el){el.style.opacity='0.5';el.disabled=true;}
+  const ok=await authenticateBiometric();
+  if(el){el.style.opacity='';el.disabled=false;}
+  if(ok){
+    document.getElementById('lockScreen').classList.remove('show');
+    appLocked=false;
+    launchApp();
+  } else {
+    showToast('❌ Biometric failed — use PIN');
+  }
+}
+
+function disableBiometric(){
+  biometricEnabled=false;
+  localStorage.removeItem('v4_bio_enabled');
+  localStorage.removeItem('v4_bio_cred');
+  updateBioUI();
+  showToast('Biometric lock disabled');
+}
+
+async function toggleBiometric(){
+  if(biometricEnabled){disableBiometric();}
+  else{await registerBiometric();}
+}
+
+function updateBioUI(){
+  const btn=document.getElementById('bioLockBtn');
+  const sub=document.getElementById('bioLockSub');
+  const bioBtn=document.getElementById('bioBtn');
+  const available=_bioAvailable();
+  if(btn){
+    if(!available){btn.textContent='Not supported';btn.disabled=true;btn.className='set-action';}
+    else if(biometricEnabled){btn.textContent='Disable';btn.className='set-action active-lock';}
+    else{btn.textContent='Enable';btn.className='set-action';btn.disabled=false;}
+  }
+  if(sub){
+    if(!available)sub.textContent='Not available on this browser';
+    else if(biometricEnabled)sub.textContent='Active — Face ID / Fingerprint';
+    else sub.textContent='Use Face ID or fingerprint';
+  }
+  if(bioBtn)bioBtn.style.display=biometricEnabled?'':'none';
+}
 function forgotPin(){const pp=prompt('Enter your 6-word passphrase to disable lock:');if(pp&&pp.trim()===passphrase){storedPin='';lockEnabled=false;localStorage.removeItem('v4_pin');localStorage.setItem('v4_lock','0');document.getElementById('lockScreen').classList.remove('show');launchApp();}else if(pp){alert('Incorrect passphrase.');}}
 function toggleLockSetting(){if(lockEnabled){if(confirm('Disable app lock?')){lockEnabled=false;storedPin='';localStorage.removeItem('v4_pin');localStorage.setItem('v4_lock','0');updateLockUI();}}else{openModal('setPinModal');}}
 function savePin(){const p=document.getElementById('newPin').value;const c=document.getElementById('confirmPin').value;if(p.length!==4||!/^\d{4}$/.test(p)){alert('Enter a 4-digit number.');return;}if(p!==c){alert('PINs do not match.');return;}storedPin=p;lockEnabled=true;localStorage.setItem('v4_pin',p);localStorage.setItem('v4_lock','1');document.getElementById('newPin').value='';document.getElementById('confirmPin').value='';closeModal('setPinModal');updateLockUI();alert('App lock enabled! PIN set successfully.');}
@@ -1150,7 +1244,9 @@ function updateLockUI(){
   }else{
     if(btn){btn.textContent='Enable';btn.className='set-action';}
     if(sub)sub.textContent='Protect your finances';
+    if(biometricEnabled){disableBiometric();}
   }
+  updateBioUI();
 }
 
 // ─── MONTH FILTER ─────────────────────────────────────────
@@ -2759,6 +2855,7 @@ function checkLock(){
   if(lockEnabled&&storedPin){
     const ls=document.getElementById('lockScreen');
     if(ls)ls.classList.add('show');
+    if(biometricEnabled)setTimeout(tryBiometric,400);
   } else {
     launchApp();
   }
@@ -2774,6 +2871,7 @@ function launchApp(){
   renderSubs();
   renderBL();
   updateLockUI();
+  updateBioUI();
   buildDateShortcuts();
 }
 
@@ -2872,7 +2970,7 @@ function toggleLock(){
   }
 }
 
-function tryBio(){if(storedPin){pinEntry=storedPin;checkPin();}}
+// tryBio() replaced by tryBiometric() above
 
 function viewPP(){alert('Your passphrase:\n\n'+passphrase+'\n\nWrite this down and keep it safe!');}
 
@@ -3242,6 +3340,10 @@ function saveSubscription(){
       updatePinDots();
       const ls=document.getElementById('lockScreen');
       if(ls) ls.classList.add('show');
+    }
+    if(!document.hidden && lockEnabled && storedPin){
+      const ls=document.getElementById('lockScreen');
+      if(ls&&ls.classList.contains('show')&&biometricEnabled)setTimeout(tryBiometric,400);
     }
   });
 })();
