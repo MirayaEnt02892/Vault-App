@@ -70,6 +70,32 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:'Syne',sa
 .pp-btn{width:100%;max-width:320px;padding:15px;border-radius:13px;border:none;background:var(--accent);color:#ffffff;font-family:'Syne',sans-serif;font-size:14px;font-weight:800;cursor:pointer;}
 .pp-restore{margin-top:12px;font-family:'DM Mono',monospace;font-size:11px;color:var(--a2);cursor:pointer;text-decoration:underline;}
 
+
+/* ── ONBOARDING ───────────────────────────────────────────── */
+#onboarding{position:fixed;inset:0;z-index:520;background:var(--bg);display:none;flex-direction:column;align-items:center;justify-content:space-between;padding:0;overflow:hidden;}
+#onboarding.show{display:flex;}
+.ob-slides{width:100%;flex:1;position:relative;overflow:hidden;}
+.ob-slide{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 28px 24px;text-align:center;transition:transform .4s cubic-bezier(.23,1,.32,1);overflow-y:auto;}
+.ob-emoji{font-size:64px;margin-bottom:24px;line-height:1;}
+.ob-title{font-size:24px;font-weight:800;color:var(--text);margin-bottom:12px;line-height:1.25;}
+.ob-desc{font-family:'DM Mono',monospace;font-size:12px;color:var(--muted);line-height:1.8;max-width:300px;}
+.ob-example{background:var(--s2);border:1px solid var(--border2);border-radius:14px;padding:13px 16px;margin-top:16px;width:100%;max-width:300px;text-align:left;}
+.ob-example-lbl{font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px;}
+.ob-example-txt{font-family:'DM Mono',monospace;font-size:13px;color:var(--accent);font-weight:700;}
+.ob-example-arr{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);margin-top:4px;}
+.ob-feat-row{display:flex;flex-direction:column;gap:12px;margin-top:16px;width:100%;max-width:300px;}
+.ob-feat{display:flex;align-items:flex-start;gap:12px;background:var(--s1);border:1px solid var(--border);border-radius:13px;padding:12px 14px;text-align:left;}
+.ob-feat-icon{font-size:22px;flex-shrink:0;margin-top:1px;}
+.ob-feat-info{}
+.ob-feat-name{font-size:13px;font-weight:800;margin-bottom:2px;}
+.ob-feat-sub{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);line-height:1.6;}
+.ob-footer{width:100%;padding:16px 28px calc(env(safe-area-inset-bottom,0px) + 24px);display:flex;align-items:center;justify-content:space-between;gap:12px;box-sizing:border-box;}
+.ob-dots{display:flex;gap:7px;align-items:center;}
+.ob-dot{width:7px;height:7px;border-radius:50%;background:var(--s3);transition:all .3s;}
+.ob-dot.active{width:20px;border-radius:99px;background:var(--accent);}
+.ob-btn-skip{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);background:none;border:none;cursor:pointer;padding:8px 0;}
+.ob-btn-next{background:var(--accent);color:#fff;border:none;border-radius:13px;padding:13px 28px;font-family:'Syne',sans-serif;font-size:14px;font-weight:800;cursor:pointer;}
+
 /* APP SHELL */
 #app{position:relative;z-index:1;height:100%;width:100%;display:flex;flex-direction:column;display:none;}
 .page{display:none;flex:1;overflow-y:auto;overflow-x:hidden;padding:20px 16px calc(env(safe-area-inset-bottom,0px) + 120px);-webkit-overflow-scrolling:touch;width:100%;box-sizing:border-box;}
@@ -160,6 +186,10 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:'Syne',sa
 
 /* TX LIST */
 .tx-list{display:flex;flex-direction:column;gap:8px;}
+.tx-day-group{display:flex;flex-direction:column;gap:8px;}
+.tx-day-hdr{display:flex;align-items:center;justify-content:space-between;padding:4px 2px 2px;}
+.tx-day-lbl{font-family:'Syne',sans-serif;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;}
+.tx-day-total{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);}
 .tx-item{display:flex;align-items:center;gap:10px;background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:12px;}
 .tx-ico{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;font-size:16px;flex-shrink:0;}
 .tx-info{flex:1;min-width:0;}
@@ -237,6 +267,21 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:'Syne',sa
 .add-hero-input{width:100%;background:var(--s1);border:2px solid rgba(74,122,88,0.18);border-radius:16px;padding:18px 52px 18px 18px;font-family:'DM Mono',monospace;font-size:15px;color:var(--text);outline:none;line-height:1.5;box-sizing:border-box;}
 .add-hero-input:focus{border-color:rgba(74,122,88,0.45);box-shadow:0 0 0 4px rgba(74,122,88,0.07);}
 .add-hero-input::placeholder{color:var(--faint);font-size:14px;}
+.sms-paste-btn{width:100%;padding:10px;border-radius:11px;border:1.5px dashed var(--border2);background:transparent;color:var(--muted);font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;text-align:center;margin-bottom:14px;letter-spacing:.03em;transition:border-color .2s,color .2s;}
+.sms-paste-btn:active{border-color:var(--accent);color:var(--accent);}
+#smsModal{position:fixed;inset:0;z-index:700;background:rgba(0,0,0,.45);display:none;align-items:flex-end;justify-content:center;}
+#smsModal.show{display:flex;}
+.sms-sheet{background:var(--s1);border-radius:22px 22px 0 0;padding:22px 18px 36px;width:100%;max-width:480px;border-top:1px solid var(--border2);}
+.sms-sheet-title{font-size:15px;font-weight:800;margin-bottom:4px;}
+.sms-sheet-sub{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:14px;line-height:1.6;}
+.sms-textarea{width:100%;height:110px;background:var(--s2);border:1px solid var(--border);border-radius:12px;padding:12px;font-family:'DM Mono',monospace;font-size:11px;color:var(--text);resize:none;outline:none;box-sizing:border-box;margin-bottom:12px;}
+.sms-parse-btn{width:100%;padding:13px;border-radius:12px;border:none;background:var(--accent);color:#fff;font-family:'Syne',sans-serif;font-size:14px;font-weight:800;cursor:pointer;margin-bottom:8px;}
+.sms-cancel-btn{width:100%;padding:10px;border-radius:12px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:'Syne',sans-serif;font-size:13px;font-weight:600;cursor:pointer;}
+.sms-result{background:var(--s2);border:1px solid var(--border);border-radius:11px;padding:12px;margin-bottom:12px;display:none;}
+.sms-result-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;font-size:12px;}
+.sms-result-row:last-child{margin-bottom:0;}
+.sms-result-lbl{font-family:'DM Mono',monospace;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.05em;}
+.sms-result-val{font-weight:700;color:var(--text);font-size:13px;}
 .add-type-pill{flex:1;padding:9px 4px;border-radius:11px;border:1px solid var(--border);background:var(--s2);color:var(--muted);font-family:'Syne',sans-serif;font-size:12px;font-weight:600;cursor:pointer;text-align:center;}
 .add-type-pill.active-exp{background:rgba(192,64,64,0.12);border-color:rgba(192,64,64,0.5);color:var(--red);font-weight:700;box-shadow:0 0 0 3px rgba(192,64,64,0.08);}
 .add-type-pill.active-inc{background:rgba(74,122,88,0.12);border-color:rgba(74,122,88,0.5);color:var(--accent);font-weight:700;box-shadow:0 0 0 3px rgba(74,122,88,0.08);}
@@ -378,6 +423,83 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:'Syne',sa
   <div class="lock-forgot" onclick="forgotPin()">Forgot PIN? Use passphrase</div>
 </div>
 
+<!-- ONBOARDING — first-time users only -->
+<div id="onboarding">
+  <div class="ob-slides" id="obSlides">
+
+    <!-- Slide 1: Welcome -->
+    <div class="ob-slide">
+      <div class="ob-emoji">🔐</div>
+      <div class="ob-title">Your money.<br>Your phone only.</div>
+      <div class="ob-desc">No account. No cloud. No one can see your data — not even us. Everything stays right here on your device, encrypted.</div>
+    </div>
+
+    <!-- Slide 2: Smart Input -->
+    <div class="ob-slide">
+      <div class="ob-emoji">⚡</div>
+      <div class="ob-title">Just type what happened.</div>
+      <div class="ob-desc">No forms. No dropdowns. Write naturally — VAULT figures out the rest.</div>
+      <div class="ob-example">
+        <div class="ob-example-lbl">You type</div>
+        <div class="ob-example-txt">"paid 500 groceries upi"</div>
+        <div class="ob-example-arr">↓</div>
+        <div class="ob-example-lbl">VAULT reads</div>
+        <div class="ob-example-txt" style="color:var(--text);">₹500 · Groceries · UPI</div>
+      </div>
+    </div>
+
+    <!-- Slide 3: Features -->
+    <div class="ob-slide">
+      <div class="ob-emoji">🛠️</div>
+      <div class="ob-title">More than just expenses.</div>
+      <div class="ob-feat-row">
+        <div class="ob-feat">
+          <div class="ob-feat-icon">🤝</div>
+          <div class="ob-feat-info">
+            <div class="ob-feat-name">Lend &amp; Borrow</div>
+            <div class="ob-feat-sub">Track who owes you and who you owe. Never guess again.</div>
+          </div>
+        </div>
+        <div class="ob-feat">
+          <div class="ob-feat-icon">🎯</div>
+          <div class="ob-feat-info">
+            <div class="ob-feat-name">Savings Goals</div>
+            <div class="ob-feat-sub">Set a target. Watch it fill up as you save.</div>
+          </div>
+        </div>
+        <div class="ob-feat">
+          <div class="ob-feat-icon">🔁</div>
+          <div class="ob-feat-info">
+            <div class="ob-feat-name">Subscriptions</div>
+            <div class="ob-feat-sub">Log recurring payments. Know before they hit your account.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 4: Passphrase warning -->
+    <div class="ob-slide">
+      <div class="ob-emoji">📝</div>
+      <div class="ob-title">One last thing — write this down.</div>
+      <div class="ob-desc">Next you'll see a 6-word passphrase. It's your <strong>only</strong> backup key.<br><br>If you lose your phone AND this passphrase — your data is gone forever. We cannot recover it. No one can.<br><br>Pen and paper. Do it now.</div>
+    </div>
+
+  </div>
+
+  <!-- Footer: dots + skip + next -->
+  <div class="ob-footer">
+    <button class="ob-btn-skip" onclick="skipOnboarding()">Skip</button>
+    <div class="ob-dots" id="obDots">
+      <div class="ob-dot active"></div>
+      <div class="ob-dot"></div>
+      <div class="ob-dot"></div>
+      <div class="ob-dot"></div>
+    </div>
+    <button class="ob-btn-next" id="obNextBtn" onclick="obNext()">Next →</button>
+  </div>
+</div>
+
+
 <!-- SPLASH -->
 <div id="splash" onclick="dismissSplash()">
   <div class="splash-logo">VAULT</div>
@@ -454,6 +576,9 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:'Syne',sa
   <!-- ADD -->
   <div class="page" id="page-add">
     <div class="hdr"><div class="logo">VAULT<span>.5</span></div></div>
+
+    <!-- Paste SMS button -->
+    <button class="sms-paste-btn" onclick="openSMSModal()">📋 Paste bank SMS / UPI message — auto fill</button>
 
     <!-- Type pills -->
     <div style="display:flex;gap:8px;margin-bottom:16px;">
@@ -1386,36 +1511,183 @@ function render(){
     list.innerHTML='<div class="empty">No transactions yet.<br>Tap + Add to get started.</div>';
     return;
   }
-  list.innerHTML=ft.slice(0,30).map((t,idx)=>{
-    const isInv=t.type==='invest'||INV_CATS.includes(t.cat);
-    const amtCol=t.type==='income'?'pos':isInv?'inv':'neg';
-    const amtPfx=t.type==='income'?'+':'-';
-    const meth=t.method||'';
-    const methBadge=meth?`<span class="badge badge-${meth.toLowerCase()}">${meth}</span>`:'';
-    const recBadge=t.recurring?'<span class="badge badge-rec">🔄</span>':'';
-    const invBadge=isInv?'<span class="badge badge-inv">📈</span>':'';
-    const noteChip=t.note?`<span class="note-chip">💬 ${t.note}</span>`:'';
-    const icon=CAT_ICONS[t.cat]||'✦';
-    const col=CAT_COLORS[t.cat]||'#888';
-    const d=new Date(t.ts).toLocaleDateString('en-IN',{day:'numeric',month:'short'});
-    return `<div class="tx-item" style="animation:fadeUp .25s ${idx*.04}s ease both">
-      <div class="tx-ico" style="background:${col}22">${icon}</div>
-      <div class="tx-info">
-        <div class="tx-name">${t.desc}</div>
-        <div class="tx-meta">${t.cat} · ${d} ${methBadge}${recBadge}${invBadge}</div>
-        ${noteChip?`<div style="margin-top:2px;">${noteChip}</div>`:''}
-      </div>
-      <div class="tx-right">
-        <div class="tx-amt ${amtCol}">${amtPfx}₹${t.amt.toLocaleString('en-IN')}</div>
-        <div class="tx-actions">
-          <button class="tx-btn" onclick="openEdit(${t.id})">✎</button>
-          <button class="tx-btn del" onclick="confirmDeleteTx(${t.id})">✕</button>
+  // Group transactions by day
+  const _today=new Date();_today.setHours(0,0,0,0);
+  const _yest=new Date(_today);_yest.setDate(_yest.getDate()-1);
+  function _dayKey(ts){const d=new Date(ts);d.setHours(0,0,0,0);return d.getTime();}
+  function _dayLabel(ts){const k=_dayKey(ts);if(k===_today.getTime())return'Today';if(k===_yest.getTime())return'Yesterday';return new Date(ts).toLocaleDateString('en-IN',{day:'numeric',month:'short'});}
+  const _limited=ft.slice(0,60);
+  const _groupMap={};const _groupOrder=[];
+  _limited.forEach(t=>{const k=_dayKey(t.ts);if(!_groupMap[k]){_groupMap[k]={label:_dayLabel(t.ts),txs:[]};_groupOrder.push(k);}_groupMap[k].txs.push(t);});
+  let _globalIdx=0;
+  list.innerHTML=_groupOrder.map(k=>{
+    const grp=_groupMap[k];
+    const dayExp=grp.txs.reduce((s,t)=>{const isInv=t.type==='invest'||INV_CATS.includes(t.cat);return t.type==='expense'&&!isInv?s+t.amt:s;},0);
+    const dayTotalStr=dayExp>0?'-₹'+dayExp.toLocaleString('en-IN'):'';
+    const cards=grp.txs.map(t=>{
+      const idx=_globalIdx++;
+      const isInv=t.type==='invest'||INV_CATS.includes(t.cat);
+      const amtCol=t.type==='income'?'pos':isInv?'inv':'neg';
+      const amtPfx=t.type==='income'?'+':'-';
+      const meth=t.method||'';
+      const methBadge=meth?`<span class="badge badge-${meth.toLowerCase()}">${meth}</span>`:'';
+      const recBadge=t.recurring?'<span class="badge badge-rec">🔄</span>':'';
+      const invBadge=isInv?'<span class="badge badge-inv">📈</span>':'';
+      const noteChip=t.note?`<span class="note-chip">💬 ${t.note}</span>`:'';
+      const icon=CAT_ICONS[t.cat]||'✦';
+      const col=CAT_COLORS[t.cat]||'#888';
+      return `<div class="tx-item" style="animation:fadeUp .25s ${idx*.04}s ease both">
+        <div class="tx-ico" style="background:${col}22">${icon}</div>
+        <div class="tx-info">
+          <div class="tx-name">${t.desc}</div>
+          <div class="tx-meta">${t.cat} ${methBadge}${recBadge}${invBadge}</div>
+          ${noteChip?`<div style="margin-top:2px;">${noteChip}</div>`:''}
         </div>
-      </div>
+        <div class="tx-right">
+          <div class="tx-amt ${amtCol}">${amtPfx}₹${t.amt.toLocaleString('en-IN')}</div>
+          <div class="tx-actions">
+            <button class="tx-btn" onclick="openEdit(${t.id})">✎</button>
+            <button class="tx-btn del" onclick="confirmDeleteTx(${t.id})">✕</button>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+    return `<div class="tx-day-group">
+      <div class="tx-day-hdr"><span class="tx-day-lbl">${grp.label}</span>${dayTotalStr?`<span class="tx-day-total">${dayTotalStr}</span>`:''}</div>
+      ${cards}
     </div>`;
   }).join('');
 }
 
+
+// ─── SMS PASTE-TO-PARSE ───────────────────────────────────────────
+let _smsParsed = null;
+let _smsActionMode = 'parse'; // 'parse' or 'apply'
+
+function openSMSModal(){
+  _smsParsed=null;
+  _smsActionMode='parse';
+  const btn=document.getElementById('smsActionBtn');
+  if(btn){btn.textContent='Parse message';btn.style.background='var(--accent)';}
+  const res=document.getElementById('smsResult');
+  if(res)res.style.display='none';
+  const ta=document.getElementById('smsPasteArea');
+  if(ta)ta.value='';
+  document.getElementById('smsModal').classList.add('show');
+  setTimeout(()=>{if(ta)ta.focus();},300);
+}
+
+function closeSMSModal(){
+  document.getElementById('smsModal').classList.remove('show');
+}
+
+function handleSMSAction(){
+  if(_smsActionMode==='parse'){
+    const txt=document.getElementById('smsPasteArea').value.trim();
+    if(!txt){alert('Please paste a bank message first.');return;}
+    _smsParsed=parseBankSMS(txt);
+    if(!_smsParsed.amt){alert('Could not read an amount from this message. Try selecting just the SMS text.');return;}
+    // Show result preview
+    const res=document.getElementById('smsResult');
+    res.style.display='block';
+    document.getElementById('sr-amt').textContent='₹'+_smsParsed.amt.toLocaleString('en-IN');
+    document.getElementById('sr-type').textContent=_smsParsed.type==='income'?'Income / Credit':_smsParsed.type==='invest'?'Investment':'Expense / Debit';
+    document.getElementById('sr-method').textContent=_smsParsed.method||'—';
+    document.getElementById('sr-desc').textContent=_smsParsed.desc||'—';
+    document.getElementById('sr-date').textContent=_smsParsed.dateStr||'Today';
+    const btn=document.getElementById('smsActionBtn');
+    btn.textContent='Fill form with this →';
+    btn.style.background='var(--accent)';
+    _smsActionMode='apply';
+  } else {
+    applySMSParsed(_smsParsed);
+    closeSMSModal();
+  }
+}
+
+function applySMSParsed(p){
+  if(!p)return;
+  // Set amount
+  const amtEl=document.getElementById('txAmt');
+  if(amtEl)amtEl.value=p.amt;
+  // Set type
+  setTxType(p.type);
+  // Set description
+  const descEl=document.getElementById('txDesc');
+  if(descEl&&p.desc)descEl.value=p.desc;
+  // Set method
+  const methSel=document.getElementById('txMethod');
+  if(methSel&&p.method){
+    methSel.value=p.method;
+  }
+  // Set date
+  if(p.dateVal){
+    const dateEl=document.getElementById('txDate');
+    if(dateEl){dateEl.value=p.dateVal;onDatePicked();}
+  }
+  // Refresh UI so pills, parse bar all update
+  refreshAddUI();
+  refreshMethodPills();
+  // Show the add page
+  showPage('page-add');
+}
+
+function parseBankSMS(txt){
+  const r={amt:null,type:'expense',method:'',desc:'',dateStr:'',dateVal:''};
+
+  // ── AMOUNT ──
+  const amtRx=[
+    /(?:Rs\.?|INR|₹)\s*([0-9,]+(?:\.[0-9]{1,2})?)/i,
+    /([0-9,]+(?:\.[0-9]{1,2})?)\s*(?:Rs\.?|INR|₹)/i,
+    /debited\s+(?:for\s+)?(?:Rs\.?|INR|₹)?\s*([0-9,]+(?:\.[0-9]{1,2})?)/i,
+    /amount\s+(?:of\s+)?(?:Rs\.?|INR|₹)?\s*([0-9,]+(?:\.[0-9]{1,2})?)/i,
+  ];
+  for(const rx of amtRx){const m=txt.match(rx);if(m){r.amt=parseFloat(m[1].replace(/,/g,''));break;}}
+
+  // ── TYPE ──
+  if(/credited|credit(?!card| card)|received|refund|cashback|added to|deposited/i.test(txt)) r.type='income';
+  else if(/debited|debit|spent on|payment of|paid|withdrawn|purchase/i.test(txt)) r.type='expense';
+  // Investment keywords
+  if(/SIP|mutual fund|groww|zerodha|kuvera|PPF|NPS|FD|fixed deposit|stocks?|equity/i.test(txt)) r.type='invest';
+
+  // ── METHOD ──
+  if(/UPI/i.test(txt)) r.method='UPI';
+  else if(/credit\s*card|cc\s*\*/i.test(txt)) r.method='CreditCard';
+  else if(/debit\s*card|dc\s*\*/i.test(txt)) r.method='DebitCard';
+  else if(/NEFT|RTGS|IMPS|net\s*banking/i.test(txt)) r.method='NetBanking';
+  else if(/ATM|cash\s*withdrawal/i.test(txt)) r.method='Cash';
+  else if(/paytm|phonepe|gpay|google\s*pay|amazon\s*pay/i.test(txt)) r.method='UPI';
+
+  // ── MERCHANT / DESCRIPTION ──
+  // UPI VPA e.g. merchant@upi
+  const vpa=txt.match(/(?:to\s+|at\s+|VPA\s*[:\-]?\s*)([a-zA-Z0-9._\-]+@[a-zA-Z0-9]+)/i);
+  if(vpa) r.desc=vpa[1];
+  // "at AMAZON" / "at SWIGGY" pattern
+  if(!r.desc){const at=txt.match(/(?:at|to)\s+([A-Z][A-Z0-9\s&'._-]{1,28?})(?:\s+on|\s+Ref|\s+via|\s+for|\.|,)/);if(at)r.desc=at[1].trim();}
+  // Paytm / PhonePe / known merchants
+  const merchants=['Swiggy','Zomato','Amazon','Flipkart','Blinkit','BigBasket','Dunzo','Ola','Uber','Netflix','Hotstar','Spotify','Jio','Airtel','BSNL','BESCOM','MSEB','CRED'];
+  for(const m of merchants){if(new RegExp('\b'+m+'\b','i').test(txt)){r.desc=m;break;}}
+
+  // ── DATE ──
+  // Patterns: 18-05-26, 18/05/2026, 18-May-26, 18 May 2026
+  const dateRxs=[
+    {rx:/(\d{1,2})[\/\-](\d{2})[\/\-](\d{2,4})/,fn:(m)=>{
+      const d=m[1].padStart(2,'0'),mo=m[2].padStart(2,'0');
+      const yr=m[3].length===2?'20'+m[3]:m[3];
+      return {val:`${yr}-${mo}-${d}`,str:`${d}/${mo}/${yr}`};
+    }},
+    {rx:/(\d{1,2})[- ]([A-Za-z]{3})[- ](\d{2,4})/,fn:(m)=>{
+      const months={jan:'01',feb:'02',mar:'03',apr:'04',may:'05',jun:'06',jul:'07',aug:'08',sep:'09',oct:'10',nov:'11',dec:'12'};
+      const mo=months[m[2].toLowerCase()]||'01';
+      const d=m[1].padStart(2,'0');
+      const yr=m[3].length===2?'20'+m[3]:m[3];
+      return {val:`${yr}-${mo}-${d}`,str:`${d} ${m[2]} ${yr}`};
+    }},
+  ];
+  for(const {rx,fn} of dateRxs){const m=txt.match(rx);if(m){const res=fn(m);r.dateVal=res.val;r.dateStr=res.str;break;}}
+
+  return r;
+}
 
 // ─── ADD TX ───────────────────────────────────────────────
 function updateSwitch(el,trackId,thumbId){const on=el.checked;document.getElementById(trackId).style.background=on?'rgba(74,122,88,0.25)':'var(--s3)';document.getElementById(thumbId).style.transform=on?'translateX(17px)':'translateX(0)';document.getElementById(thumbId).style.background=on?'var(--accent)':'var(--muted)';}
@@ -2912,6 +3184,63 @@ function closeMO(e,id){
 
 // ─── MISSING CORE FUNCTIONS ──────────────────────────────────
 
+
+// ─── ONBOARDING ───────────────────────────────────────────
+let _obSlide = 0;
+const _OB_TOTAL = 4;
+
+function showOnboarding(){
+  const el=document.getElementById('onboarding');
+  if(el)el.classList.add('show');
+  _obGoTo(0);
+}
+
+function _obGoTo(n){
+  _obSlide=n;
+  document.querySelectorAll('.ob-slide').forEach((s,i)=>{
+    s.style.transform=`translateX(${(i-n)*100}%)`;
+  });
+  document.querySelectorAll('.ob-dot').forEach((d,i)=>{
+    d.className='ob-dot'+(i===n?' active':'');
+  });
+  const btn=document.getElementById('obNextBtn');
+  if(btn)btn.textContent=n===_OB_TOTAL-1?'Get Started →':'Next →';
+}
+
+function obNext(){
+  if(_obSlide<_OB_TOTAL-1){_obGoTo(_obSlide+1);}
+  else{finishOnboarding();}
+}
+
+function skipOnboarding(){finishOnboarding();}
+
+function finishOnboarding(){
+  localStorage.setItem('v4_onboarded','1');
+  const el=document.getElementById('onboarding');
+  if(el){el.style.opacity='0';el.style.transition='opacity .4s';setTimeout(()=>{el.classList.remove('show');el.style.opacity='';el.style.transition='';},400);}
+  // Go straight to passphrase setup (skip splash wait)
+  setTimeout(()=>{
+    const sp=document.getElementById('splash');
+    if(sp){sp.style.display='none';}
+    showPPScreen();
+  },420);
+}
+
+// Swipe support for onboarding
+(function(){
+  let sx=0;
+  document.addEventListener('touchstart',e=>{
+    const ob=document.getElementById('onboarding');
+    if(ob&&ob.classList.contains('show'))sx=e.touches[0].clientX;
+  },{passive:true});
+  document.addEventListener('touchend',e=>{
+    const ob=document.getElementById('onboarding');
+    if(!ob||!ob.classList.contains('show'))return;
+    const dx=e.changedTouches[0].clientX-sx;
+    if(Math.abs(dx)>50){dx<0?obNext():(_obSlide>0&&_obGoTo(_obSlide-1));}
+  },{passive:true});
+})();
+
 function dismissSplash(){
   const sp=document.getElementById('splash');
   if(!sp||sp.classList.contains('out'))return;
@@ -3402,6 +3731,11 @@ function saveSubscription(){
   // Init encryption key + load encrypted data
   await loadData();
 
+  // Show onboarding for first-time users (before splash)
+  if(!passphrase && !localStorage.getItem('v4_onboarded')){
+    showOnboarding();
+  }
+
   // Set motivational quote on splash
   const q = QUOTES[Math.floor(Math.random() * QUOTES.length)];
   const sqEl = document.getElementById('splashQ');
@@ -3689,5 +4023,23 @@ function vaultInstall(){
   });
 }
 </script>
+
+<!-- SMS PASTE MODAL -->
+<div id="smsModal" onclick="if(event.target===this)closeSMSModal()">
+  <div class="sms-sheet">
+    <div class="sms-sheet-title">Paste bank message</div>
+    <div class="sms-sheet-sub">Copy any bank SMS, UPI notification, or credit card alert and paste it below. Nothing leaves your device.</div>
+    <textarea class="sms-textarea" id="smsPasteArea" placeholder="e.g. Rs.500 debited from your HDFC a/c XX1234 on 18-May-26 to UPI merchant@upi Ref 123456..."></textarea>
+    <div class="sms-result" id="smsResult">
+      <div class="sms-result-row"><span class="sms-result-lbl">Amount</span><span class="sms-result-val" id="sr-amt">—</span></div>
+      <div class="sms-result-row"><span class="sms-result-lbl">Type</span><span class="sms-result-val" id="sr-type">—</span></div>
+      <div class="sms-result-row"><span class="sms-result-lbl">Method</span><span class="sms-result-val" id="sr-method">—</span></div>
+      <div class="sms-result-row"><span class="sms-result-lbl">Merchant</span><span class="sms-result-val" id="sr-desc">—</span></div>
+      <div class="sms-result-row"><span class="sms-result-lbl">Date</span><span class="sms-result-val" id="sr-date">—</span></div>
+    </div>
+    <button class="sms-parse-btn" id="smsActionBtn" onclick="handleSMSAction()">Parse message</button>
+    <button class="sms-cancel-btn" onclick="closeSMSModal()">Cancel</button>
+  </div>
+</div>
 </body>
 </html>
