@@ -1592,6 +1592,7 @@ function handleSMSAction(){
     res.style.display='block';
     document.getElementById('sr-amt').textContent='₹'+_smsParsed.amt.toLocaleString('en-IN');
     document.getElementById('sr-type').textContent=_smsParsed.type==='income'?'Income / Credit':_smsParsed.type==='invest'?'Investment':'Expense / Debit';
+    document.getElementById('sr-cat').textContent=_smsParsed.cat||'—';
     document.getElementById('sr-method').textContent=_smsParsed.method||'—';
     document.getElementById('sr-desc').textContent=_smsParsed.desc||'—';
     document.getElementById('sr-date').textContent=_smsParsed.dateStr||'Today';
@@ -1615,6 +1616,8 @@ function applySMSParsed(p){
   // Set description
   const descEl=document.getElementById('txDesc');
   if(descEl&&p.desc)descEl.value=p.desc;
+  // Set category
+  if(p.cat){selectCat(p.cat);}
   // Set method
   const methSel=document.getElementById('txMethod');
   if(methSel&&p.method){
@@ -1633,58 +1636,58 @@ function applySMSParsed(p){
 }
 
 function parseBankSMS(txt){
-  const r={amt:null,type:'expense',method:'',desc:'',dateStr:'',dateVal:''};
+  const r={amt:null,type:'expense',method:'',desc:'',cat:'',dateStr:'',dateVal:''};
 
-  // ── AMOUNT ──
-  const amtRx=[
-    /(?:Rs\.?|INR|₹)\s*([0-9,]+(?:\.[0-9]{1,2})?)/i,
-    /([0-9,]+(?:\.[0-9]{1,2})?)\s*(?:Rs\.?|INR|₹)/i,
-    /debited\s+(?:for\s+)?(?:Rs\.?|INR|₹)?\s*([0-9,]+(?:\.[0-9]{1,2})?)/i,
-    /amount\s+(?:of\s+)?(?:Rs\.?|INR|₹)?\s*([0-9,]+(?:\.[0-9]{1,2})?)/i,
-  ];
+  // AMOUNT
+  const amtRx=[/(?:Rs\.?|INR|\u20b9)\s*([0-9,]+(?:\.[0-9]{1,2})?)/i,/([0-9,]+(?:\.[0-9]{1,2})?)\s*(?:Rs\.?|INR|\u20b9)/i,/debited\s+(?:for\s+)?(?:Rs\.?|INR|\u20b9)?\s*([0-9,]+(?:\.[0-9]{1,2})?)/i];
   for(const rx of amtRx){const m=txt.match(rx);if(m){r.amt=parseFloat(m[1].replace(/,/g,''));break;}}
 
-  // ── TYPE ──
-  if(/credited|credit(?!card| card)|received|refund|cashback|added to|deposited/i.test(txt)) r.type='income';
-  else if(/debited|debit|spent on|payment of|paid|withdrawn|purchase/i.test(txt)) r.type='expense';
-  // Investment keywords
-  if(/SIP|mutual fund|groww|zerodha|kuvera|PPF|NPS|FD|fixed deposit|stocks?|equity/i.test(txt)) r.type='invest';
+  // TYPE — covers full words AND banking abbreviations (Dr./Cr.)
+  if(/\bCr\.?\b|credited|credit(?!card| card)|received|refund|cashback|added to|deposited/i.test(txt)) r.type='income';
+  if(/\bDr\.?\b|debited|debit|spent on|payment of|paid|withdrawn|purchase/i.test(txt)) r.type='expense';
+  if(/\bSIP\b|mutual fund|groww|zerodha|kuvera|\bPPF\b|\bNPS\b|\bFD\b|fixed deposit|stocks?\b|equity/i.test(txt)) r.type='invest';
 
-  // ── METHOD ──
-  if(/UPI/i.test(txt)) r.method='UPI';
+  // METHOD
+  if(/\bUPI\b/i.test(txt)) r.method='UPI';
   else if(/credit\s*card|cc\s*\*/i.test(txt)) r.method='CreditCard';
   else if(/debit\s*card|dc\s*\*/i.test(txt)) r.method='DebitCard';
   else if(/NEFT|RTGS|IMPS|net\s*banking/i.test(txt)) r.method='NetBanking';
-  else if(/ATM|cash\s*withdrawal/i.test(txt)) r.method='Cash';
+  else if(/ATM|cash\s*with/i.test(txt)) r.method='Cash';
   else if(/paytm|phonepe|gpay|google\s*pay|amazon\s*pay/i.test(txt)) r.method='UPI';
 
-  // ── MERCHANT / DESCRIPTION ──
-  // UPI VPA e.g. merchant@upi
+  // MERCHANT
   const vpa=txt.match(/(?:to\s+|at\s+|VPA\s*[:\-]?\s*)([a-zA-Z0-9._\-]+@[a-zA-Z0-9]+)/i);
   if(vpa) r.desc=vpa[1];
-  // "at AMAZON" / "at SWIGGY" pattern
-  if(!r.desc){const at=txt.match(/(?:at|to)\s+([A-Z][A-Z0-9\s&'._-]{1,28?})(?:\s+on|\s+Ref|\s+via|\s+for|\.|,)/);if(at)r.desc=at[1].trim();}
-  // Paytm / PhonePe / known merchants
-  const merchants=['Swiggy','Zomato','Amazon','Flipkart','Blinkit','BigBasket','Dunzo','Ola','Uber','Netflix','Hotstar','Spotify','Jio','Airtel','BSNL','BESCOM','MSEB','CRED'];
-  for(const m of merchants){if(new RegExp('\b'+m+'\b','i').test(txt)){r.desc=m;break;}}
+  if(!r.desc){const at=txt.match(/(?:\bat\b|\bto\b)\s+([A-Z][A-Z0-9\s&'.]{1,25})(?:\s+on\b|\s+Ref\b|\s+via\b|\s+for\b|\.|,)/);if(at)r.desc=at[1].trim();}
+  const knownM=['Swiggy','Zomato','Amazon','Flipkart','Myntra','Blinkit','BigBasket','Zepto','JioMart','Dunzo','Ola','Uber','Rapido','Netflix','Hotstar','Spotify','BookMyShow','Apollo','Medplus','1mg','Jio','Airtel','BSNL','PhonePe','Paytm','CRED','Groww','Zerodha','IRCTC'];
+  for(const m of knownM){if(new RegExp('\\b'+m+'\\b','i').test(txt)){r.desc=m;break;}}
 
-  // ── DATE ──
-  // Patterns: 18-05-26, 18/05/2026, 18-May-26, 18 May 2026
-  const dateRxs=[
-    {rx:/(\d{1,2})[\/\-](\d{2})[\/\-](\d{2,4})/,fn:(m)=>{
-      const d=m[1].padStart(2,'0'),mo=m[2].padStart(2,'0');
-      const yr=m[3].length===2?'20'+m[3]:m[3];
-      return {val:`${yr}-${mo}-${d}`,str:`${d}/${mo}/${yr}`};
-    }},
-    {rx:/(\d{1,2})[- ]([A-Za-z]{3})[- ](\d{2,4})/,fn:(m)=>{
-      const months={jan:'01',feb:'02',mar:'03',apr:'04',may:'05',jun:'06',jul:'07',aug:'08',sep:'09',oct:'10',nov:'11',dec:'12'};
-      const mo=months[m[2].toLowerCase()]||'01';
-      const d=m[1].padStart(2,'0');
-      const yr=m[3].length===2?'20'+m[3]:m[3];
-      return {val:`${yr}-${mo}-${d}`,str:`${d} ${m[2]} ${yr}`};
-    }},
-  ];
-  for(const {rx,fn} of dateRxs){const m=txt.match(rx);if(m){const res=fn(m);r.dateVal=res.val;r.dateStr=res.str;break;}}
+  // CATEGORY
+  const t=txt+' '+(r.desc||'');
+  if(r.type==='invest'){
+    if(/\bSIP\b|mutual fund/i.test(t)) r.cat='SIP';
+    else if(/\bPPF\b/i.test(t)) r.cat='PPF';
+    else if(/\bNPS\b/i.test(t)) r.cat='NPS';
+    else if(/\bFD\b|fixed deposit/i.test(t)) r.cat='FD';
+    else if(/\bEPF\b/i.test(t)) r.cat='EPF';
+    else if(/gold/i.test(t)) r.cat='Gold';
+    else r.cat='Stocks';
+  } else if(r.type==='income'){
+    r.cat='Income';
+  } else {
+    if(/swiggy|zomato|\bfood\b|restaurant|cafe|\bhotel\b|dining|pizza|burger|domino|kfc|mcdonald|eatfit|faasos|box8/i.test(t)) r.cat='Food';
+    else if(/bigbasket|blinkit|zepto|jiomart|dmart|grocery|grocer|supermark|kirana|vegetable/i.test(t)) r.cat='Groceries';
+    else if(/\bola\b|\buber\b|rapido|metro|\bbus\b|\bauto\b|\bcab\b|petrol|fuel|irctc|\btrain\b|flight|indigo|spicejet|airindia|parking|toll|fastag/i.test(t)) r.cat='Transport';
+    else if(/amazon|flipkart|myntra|meesho|nykaa|ajio|\bmall\b|shopping|retail|fashion|clothes/i.test(t)) r.cat='Shopping';
+    else if(/\bjio\b|airtel|bsnl|\bvi\b|electricity|bescom|mseb|water bill|gas bill|broadband|internet|recharge|dth|tata sky|dish tv|\bbill\b|insurance|\bemi\b|\bloan\b/i.test(t)) r.cat='Bills';
+    else if(/apollo|medplus|1mg|pharma|medical|hospital|clinic|doctor|health|medicine|diagnostic|practo/i.test(t)) r.cat='Health';
+    else if(/netflix|hotstar|spotify|prime video|bookmyshow|pvr|inox|movie|cinema|concert|gaming/i.test(t)) r.cat='Entertainment';
+    else r.cat='Other';
+  }
+
+  // DATE
+  const dRx=[{rx:/([0-9]{1,2})[\/-]([0-9]{2})[\/-]([0-9]{2,4})/,fn:(m)=>{const d=m[1].padStart(2,'0'),mo=m[2].padStart(2,'0'),yr=m[3].length===2?'20'+m[3]:m[3];return{val:yr+'-'+mo+'-'+d,str:d+'/'+mo+'/'+yr};}},{rx:/([0-9]{1,2})[- ]([A-Za-z]{3})[- ]([0-9]{2,4})/,fn:(m)=>{const ms={jan:'01',feb:'02',mar:'03',apr:'04',may:'05',jun:'06',jul:'07',aug:'08',sep:'09',oct:'10',nov:'11',dec:'12'};const mo=ms[m[2].toLowerCase()]||'01';const d=m[1].padStart(2,'0');const yr=m[3].length===2?'20'+m[3]:m[3];return{val:yr+'-'+mo+'-'+d,str:d+' '+m[2]+' '+yr};}}];
+  for(const{rx,fn}of dRx){const m=txt.match(rx);if(m){const res=fn(m);r.dateVal=res.val;r.dateStr=res.str;break;}}
 
   return r;
 }
@@ -4033,6 +4036,7 @@ function vaultInstall(){
     <div class="sms-result" id="smsResult">
       <div class="sms-result-row"><span class="sms-result-lbl">Amount</span><span class="sms-result-val" id="sr-amt">—</span></div>
       <div class="sms-result-row"><span class="sms-result-lbl">Type</span><span class="sms-result-val" id="sr-type">—</span></div>
+      <div class="sms-result-row"><span class="sms-result-lbl">Category</span><span class="sms-result-val" id="sr-cat">—</span></div>
       <div class="sms-result-row"><span class="sms-result-lbl">Method</span><span class="sms-result-val" id="sr-method">—</span></div>
       <div class="sms-result-row"><span class="sms-result-lbl">Merchant</span><span class="sms-result-val" id="sr-desc">—</span></div>
       <div class="sms-result-row"><span class="sms-result-lbl">Date</span><span class="sms-result-val" id="sr-date">—</span></div>
