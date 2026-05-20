@@ -1516,14 +1516,17 @@ function render(){
   const _yest=new Date(_today);_yest.setDate(_yest.getDate()-1);
   function _dayKey(ts){const d=new Date(ts);d.setHours(0,0,0,0);return d.getTime();}
   function _dayLabel(ts){const k=_dayKey(ts);if(k===_today.getTime())return'Today';if(k===_yest.getTime())return'Yesterday';return new Date(ts).toLocaleDateString('en-IN',{day:'numeric',month:'short'});}
-  const _limited=ft.slice(0,60);
+  // Sort by timestamp descending so backdated entries appear in correct group
+  const _limited=[...ft].sort((a,b)=>b.ts-a.ts).slice(0,60);
   const _groupMap={};const _groupOrder=[];
   _limited.forEach(t=>{const k=_dayKey(t.ts);if(!_groupMap[k]){_groupMap[k]={label:_dayLabel(t.ts),txs:[]};_groupOrder.push(k);}_groupMap[k].txs.push(t);});
   let _globalIdx=0;
   list.innerHTML=_groupOrder.map(k=>{
     const grp=_groupMap[k];
     const dayExp=grp.txs.reduce((s,t)=>{const isInv=t.type==='invest'||INV_CATS.includes(t.cat);return t.type==='expense'&&!isInv?s+t.amt:s;},0);
-    const dayTotalStr=dayExp>0?'-₹'+dayExp.toLocaleString('en-IN'):'';
+    const dayInc=grp.txs.reduce((s,t)=>t.type==='income'?s+t.amt:s,0);
+    const dayNet=dayInc-dayExp;
+    const dayTotalStr=dayExp>0?(dayNet>0?'+₹'+dayNet.toLocaleString('en-IN'):'-₹'+dayExp.toLocaleString('en-IN')):'';
     const cards=grp.txs.map(t=>{
       const idx=_globalIdx++;
       const isInv=t.type==='invest'||INV_CATS.includes(t.cat);
@@ -1751,8 +1754,8 @@ function parseSmartInput(val) {
 
   // ── Hindi pre-pass: detect Hinglish signals before main logic ──
   let hindiIncomeSignal=false, hindiExpenseSignal=false, hindiCatHint='', hindiMethodHint='', hindiSkip=new Set();
-  HINDI_INCOME_PHRASES.forEach(p=>{if(raw.includes(p)){hindiIncomeSignal=true;}});
-  HINDI_EXPENSE_PHRASES.forEach(p=>{if(raw.includes(p)){hindiExpenseSignal=true;}});
+  HINDI_INCOME_PHRASES.forEach(p=>{const re=new RegExp('(?:^|\\s)'+p.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'(?:\\s|$|[^a-z])');if(re.test(raw))hindiIncomeSignal=true;});
+  HINDI_EXPENSE_PHRASES.forEach(p=>{const re=new RegExp('(?:^|\\s)'+p.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'(?:\\s|$|[^a-z])');if(re.test(raw))hindiExpenseSignal=true;});
   tokens.forEach(t=>{
     const hv=HINDI_MAP[t];
     if(!hv)return;
@@ -3116,8 +3119,15 @@ function recordPayment() {
   const totalPaid=r.payments.reduce((s,p)=>s+p.amt,0);
   r.amt=Math.max(0,r.originalAmt-totalPaid);
   if (r.amt<=0) r.settled=true;
+  // Add income entry to main transaction list so balance reflects repayment
+  const repayDesc=(r.type==='oweme'?'Repayment from ':'Paid back to ')+r.name+(note?' · '+note:'');
+  const repayType=r.type==='oweme'?'income':'expense';
+  txs.unshift({id:Date.now(),amt,desc:repayDesc,cat:r.type==='oweme'?'Income':'Other',method,note:'Lend settlement',type:repayType,ts:Date.now()});
   save();
+  buildMonthFilter();
+  render();
   renderBL();
+  showToast((r.type==='oweme'?'💰 ₹':'💸 ₹')+amt.toLocaleString('en-IN')+' recorded · added to transactions');
   // Clear input and refresh modal
   document.getElementById('settlePayAmt').value='';
   if(document.getElementById('settlePayNote')) document.getElementById('settlePayNote').value='';
@@ -3513,6 +3523,7 @@ function addTransaction(){
 
 function saveTx(tx){
   txs.unshift(tx);
+  txs.sort((a,b)=>b.ts-a.ts);
   save();
   clearForm();
   buildMonthFilter();
@@ -3802,29 +3813,24 @@ function setTrackTab(tab){
 function confirmRepayment(){
   closeModal('repayModal');
   if(!_lastReceivedFrom){return;}
-  const {name}=_lastReceivedFrom;
+  const {name,amt:rAmt}=_lastReceivedFrom;
   _lastReceivedFrom=null;
-  // Navigate to Lend & Borrow → Lent by Me tab, filtered to this person
-  showPage('page-track');
-  setTrackTab('lend');
-  setBLTab('oweme');
-  // Check if a matching record exists and highlight it
+  // Add income entry to main transaction list
+  txs.unshift({id:Date.now(),amt:rAmt,desc:'Repayment from '+name,cat:'Income',method:'UPI',note:'Lend settlement',type:'income',ts:Date.now()});
+  // Auto-settle matching lend record
   const match=blRecords.find(r=>r.type==='oweme'&&!r.settled&&r.name.toLowerCase()===name.toLowerCase());
   if(match){
-    // Auto-settle if amounts match exactly or ask via history
-    showToast('📋 Find '+name+' in the list and tap ✓ Settle');
-    setTimeout(()=>{
-      const items=document.querySelectorAll('.bl-name');
-      items.forEach(el=>{
-        if(el.textContent.toLowerCase()===name.toLowerCase()){
-          el.closest('.bl-item').style.outline='2px solid var(--accent)';
-          el.closest('.bl-item').style.borderRadius='14px';
-          el.closest('.bl-item').scrollIntoView({behavior:'smooth',block:'center'});
-        }
-      });
-    },300);
+    if(!match.payments)match.payments=[];
+    if(!match.originalAmt)match.originalAmt=match.amt;
+    match.payments.push({date:toYMD(new Date()),amt:rAmt,method:'UPI',note:'Repayment via smart input'});
+    const totalPaid=match.payments.reduce((s,p)=>s+p.amt,0);
+    match.amt=Math.max(0,match.originalAmt-totalPaid);
+    if(match.amt<=0)match.settled=true;
+    save();buildMonthFilter();render();renderBL();
+    showToast('💰 ₹'+rAmt.toLocaleString('en-IN')+' from '+name+' · lend record updated');
   } else {
-    showToast('No existing record for '+name+' — add one in Lend & Borrow');
+    save();buildMonthFilter();render();
+    showToast('💰 ₹'+rAmt.toLocaleString('en-IN')+' from '+name+' · added as income');
   }
 }
 
