@@ -183,6 +183,29 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:'Syne',sa
 .cat-amt{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:6px;}
 .cat-bar{height:4px;background:var(--s3);border-radius:99px;overflow:hidden;}
 .cat-fill{height:100%;border-radius:99px;}
+.trend-stat-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:12px;}
+.trend-stat{background:var(--s1);border:1px solid var(--border);border-radius:10px;padding:10px 12px;}
+.trend-stat-lbl{font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px;}
+.trend-stat-val{font-size:17px;font-weight:700;color:var(--text);}
+.trend-stat-val.red{color:#c0392b;}
+.trend-stat-val.grn{color:var(--accent);}
+.trend-section{background:var(--s1);border:1px solid var(--border);border-radius:16px;padding:14px;margin-bottom:14px;}
+.trend-sec-lbl{font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;}
+.trend-bar-row{display:flex;align-items:flex-end;gap:5px;height:100px;margin-bottom:6px;}
+.trend-bar-col{display:flex;flex-direction:column;align-items:center;gap:3px;flex:1;}
+.trend-bar-inner{width:100%;border-radius:4px 4px 0 0;cursor:pointer;transition:opacity .15s;background:#c0392b;min-height:3px;}
+.trend-bar-inner.selected{background:var(--accent);}
+.trend-bar-inner:active{opacity:.7;}
+.trend-month-lbl{font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);text-align:center;}
+.trend-detail{border-top:1px solid var(--border);margin-top:10px;padding-top:10px;}
+.trend-detail-hdr{font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px;}
+.trend-detail-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border);}
+.trend-detail-row:last-child{border-bottom:none;}
+.trend-det-lbl{font-size:12px;color:var(--muted);}
+.trend-det-val{font-family:'DM Mono',monospace;font-size:12px;font-weight:500;color:var(--text);}
+.trend-mom{font-size:11px;font-weight:600;padding:2px 7px;border-radius:6px;}
+.trend-mom.up{background:rgba(192,57,43,.12);color:#c0392b;}
+.trend-mom.dn{background:rgba(39,139,81,.12);color:var(--accent);}
 
 /* TX LIST */
 .tx-list{display:flex;flex-direction:column;gap:6px;}
@@ -728,6 +751,16 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:'Syne',sa
   <div class="page" id="page-spend">
     <div class="hdr"><div class="logo">VAULT<span>.5</span></div></div>
     <div class="sec-ttl" style="margin-bottom:16px;">Spending Activity</div>
+
+    <!-- 6-Month Trend -->
+    <div class="trend-stat-grid" id="trendStats"></div>
+    <div class="trend-section">
+      <div class="trend-sec-lbl">6-month spending trend</div>
+      <div class="trend-bar-row" id="trendBars"></div>
+      <div style="display:flex;gap:5px;" id="trendLabels"></div>
+      <div class="trend-detail" id="trendDetail" style="display:none;"></div>
+    </div>
+
     <div class="spend-period">
       <button class="sp-tab active" id="spD" onclick="setSpendPeriod('D')">Daily</button>
       <button class="sp-tab" id="spW" onclick="setSpendPeriod('W')">Weekly</button>
@@ -2588,6 +2621,78 @@ function getSpendData(period){
   return {bars,barLabels,barDates};
 }
 
+function renderTrend(){
+  // Build last 6 months of expense data
+  const now=new Date();
+  const months=[];
+  for(let i=5;i>=0;i--){
+    const d=new Date(now.getFullYear(),now.getMonth()-i,1);
+    const end=new Date(d.getFullYear(),d.getMonth()+1,1);
+    const label=d.toLocaleDateString('en-IN',{month:'short'});
+    const mTxs=txs.filter(t=>t.type==='expense'&&!INV_CATS.includes(t.cat)&&t.ts>=d.getTime()&&t.ts<end.getTime());
+    const total=mTxs.reduce((s,t)=>s+t.amt,0);
+    const cats={};
+    mTxs.forEach(t=>{cats[t.cat]=(cats[t.cat]||0)+t.amt;});
+    months.push({label,total,cats,from:d.getTime(),to:end.getTime()});
+  }
+
+  // Stats
+  const totals=months.map(m=>m.total).filter(v=>v>0);
+  const avg=totals.length?Math.round(totals.reduce((a,b)=>a+b,0)/totals.length):0;
+  const best=months.reduce((a,b)=>b.total>0&&(a.total===0||b.total<a.total)?b:a,months[0]);
+  const worst=months.reduce((a,b)=>b.total>a.total?b:a,months[0]);
+  const cur=months[5];const prev=months[4];
+  const mom=prev.total>0?Math.round(((cur.total-prev.total)/prev.total)*100):null;
+
+  const statsEl=document.getElementById('trendStats');
+  if(statsEl){
+    statsEl.innerHTML=`
+      <div class="trend-stat"><div class="trend-stat-lbl">Avg monthly</div><div class="trend-stat-val red">₹${avg.toLocaleString('en-IN')}</div></div>
+      <div class="trend-stat"><div class="trend-stat-lbl">This month</div><div class="trend-stat-val red">₹${cur.total.toLocaleString('en-IN')}${mom!==null?` <span class="trend-mom ${mom>0?'up':'dn'}">${mom>0?'▲':'▼'}${Math.abs(mom)}%</span>`:''}</div></div>
+      <div class="trend-stat"><div class="trend-stat-lbl">Lowest month</div><div class="trend-stat-val grn">${best.label} · ₹${best.total.toLocaleString('en-IN')}</div></div>
+      <div class="trend-stat"><div class="trend-stat-lbl">Highest month</div><div class="trend-stat-val red">${worst.label} · ₹${worst.total.toLocaleString('en-IN')}</div></div>`;
+  }
+
+  // Bars
+  const maxAmt=Math.max(...months.map(m=>m.total),1);
+  const barH=90;
+  let selIdx=5;
+
+  function renderBars(){
+    const barsEl=document.getElementById('trendBars');
+    const lblsEl=document.getElementById('trendLabels');
+    if(!barsEl||!lblsEl)return;
+    barsEl.innerHTML=months.map((m,i)=>{
+      const h=m.total>0?Math.max(4,Math.round((m.total/maxAmt)*barH)):4;
+      const isSel=i===selIdx;
+      return `<div class="trend-bar-col" style="height:${barH}px;justify-content:flex-end;">
+        <div class="trend-bar-inner${isSel?' selected':''}" style="height:${h}px;" onclick="selectTrendBar(${i})"></div>
+      </div>`;
+    }).join('');
+    lblsEl.innerHTML=months.map((m,i)=>`<div class="trend-month-lbl" style="flex:1;font-weight:${i===selIdx?700:400};color:${i===selIdx?'var(--accent)':'var(--muted)'};">${m.label}</div>`).join('');
+    renderTrendDetail(selIdx);
+  }
+
+  function renderTrendDetail(idx){
+    const m=months[idx];
+    const det=document.getElementById('trendDetail');
+    if(!det)return;
+    if(!m.total){det.style.display='none';return;}
+    det.style.display='block';
+    const catRows=Object.entries(m.cats).sort((a,b)=>b[1]-a[1]).map(([k,v])=>{
+      const pct=Math.round((v/m.total)*100);
+      const icon=CAT_ICONS[k]||'✦';
+      return `<div class="trend-detail-row">
+        <span class="trend-det-lbl">${icon} ${k}</span>
+        <span class="trend-det-val">₹${Math.round(v).toLocaleString('en-IN')} <span style="color:var(--muted);font-size:10px;">${pct}%</span></span>
+      </div>`;
+    }).join('');
+    det.innerHTML=`<div class="trend-detail-hdr">${m.label} · ₹${Math.round(m.total).toLocaleString('en-IN')} spent</div>${catRows||'<div class="trend-det-lbl" style="padding:6px 0;">No expenses this month</div>'}`;
+  }
+
+  window.selectTrendBar=function(idx){selIdx=idx;renderBars();};
+  renderBars();
+}
 function drawSpend(period){
   spendPeriod=period;
   const {bars,barLabels,barDates}=getSpendData(period);
@@ -3401,7 +3506,7 @@ function showPage(id){
     else if(id==='page-track'){fabLabel.textContent='+ Add';mainFab.style.background='var(--accent)';}
     else{fabLabel.textContent='Add';mainFab.style.background='var(--accent)';}
   }
-  if(id==='page-spend')setTimeout(()=>drawSpend(spendPeriod||'D'),80);
+  if(id==='page-spend'){setTimeout(()=>{renderTrend();drawSpend(spendPeriod||'D');},80);}
   if(id==='page-settings'){
     renderCustomCatList();
     const bi=document.getElementById('budgetInput');if(bi)bi.value=budget;
