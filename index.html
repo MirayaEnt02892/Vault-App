@@ -248,6 +248,9 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:'Syne',sa
 .smart-wrap{position:relative;margin-bottom:10px;}
 .smart-input{width:100%;background:var(--s2);border:1px solid rgba(74,122,88,.3);border-radius:13px;padding:13px 46px 13px 14px;font-family:'DM Mono',monospace;font-size:13px;color:var(--text);outline:none;}
 .smart-input::placeholder{color:var(--faint);}
+.ta-suggestions{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px;}
+.ta-chip{padding:6px 11px;border-radius:9px;border:1px solid var(--border);background:var(--s2);font-size:12px;cursor:pointer;color:var(--text);white-space:nowrap;font-family:'DM Mono',monospace;transition:background .15s;}
+.ta-chip:active{background:rgba(74,122,88,0.12);border-color:rgba(74,122,88,0.4);color:var(--accent);}
 .mic-btn{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);padding:4px;}
 .mic-btn.listening{color:var(--red);}
 .smart-preview{background:var(--s3);border:1px solid rgba(74,122,88,.1);border-radius:10px;padding:11px 13px;margin-bottom:12px;display:none;}
@@ -303,6 +306,11 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:'Syne',sa
 .add-plain-input:focus{border-color:rgba(74,122,88,0.4);}
 .cat-pill{padding:7px 13px;border-radius:10px;border:1px solid var(--border);background:var(--s2);font-size:12px;cursor:pointer;color:var(--text);white-space:nowrap;font-family:'Syne',sans-serif;}
 .cat-pill.selected{background:rgba(74,122,88,0.1);border-color:rgba(74,122,88,0.35);color:var(--accent);font-weight:600;}
+.cat-pill.add-new{border-style:dashed;color:var(--muted);}
+.custom-cat-chip{display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--s2);border:1px solid var(--border);border-radius:10px;font-size:13px;}
+.custom-cat-chip .cc-del{background:none;border:none;color:var(--muted);font-size:14px;cursor:pointer;padding:0 2px;line-height:1;}
+.cat-color-swatch{width:26px;height:26px;border-radius:7px;border:2px solid transparent;cursor:pointer;flex-shrink:0;}
+.cat-color-swatch.picked{border-color:var(--text);}
 .method-pill{padding:8px 14px;border-radius:10px;border:1px solid var(--border);background:var(--s2);font-size:12px;cursor:pointer;color:var(--text);white-space:nowrap;font-family:'Syne',sans-serif;}
 .method-pill.selected{background:rgba(74,122,88,0.1);border-color:rgba(74,122,88,0.35);color:var(--accent);font-weight:600;}
 .add-save-btn{width:100%;padding:16px;border-radius:16px;border:none;background:var(--accent);color:#ffffff;font-family:'Syne',sans-serif;font-size:15px;font-weight:700;cursor:pointer;margin-top:8px;letter-spacing:.02em;}
@@ -638,7 +646,8 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:'Syne',sa
       </div>
       <div>
         <div class="add-field-label">DESCRIPTION</div>
-        <input class="add-plain-input" type="text" id="txDesc" placeholder="What was this?" oninput="refreshAddUI()">
+        <input class="add-plain-input" type="text" id="txDesc" placeholder="What was this?" oninput="onDescInput(this.value)" autocomplete="off">
+        <div class="ta-suggestions" id="taSuggestions"></div>
       </div>
     </div>
 
@@ -654,6 +663,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:'Syne',sa
     <div style="margin-bottom:16px;">
       <div class="add-field-label">CATEGORY</div>
       <div id="catPills" style="display:flex;flex-wrap:wrap;gap:7px;"></div>
+      <button class="cat-pill add-new" id="addNewCatBtn" onclick="openAddCatModal()" style="display:none;margin-top:4px;">+ Add category</button>
       <select id="txCat" style="display:none;">
         <optgroup label="Expenses"><option value="Food">Food</option><option value="Groceries">Groceries</option><option value="Transport">Transport</option><option value="Shopping">Shopping</option><option value="Bills">Bills</option><option value="Health">Health</option><option value="Entertainment">Entertainment</option><option value="Other">Other</option></optgroup>
         <optgroup label="Income"><option value="Income">Income</option></optgroup>
@@ -828,9 +838,36 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:'Syne',sa
       <div class="set-row"><div><div class="set-lbl">Restore from File</div><div class="set-sub">Upload .vault backup</div></div><button class="set-action" onclick="openModal('restoreModal')">📂 Restore</button></div>
     </div>
     <div class="settings-group">
+      <div class="set-row" style="flex-direction:column;align-items:flex-start;gap:10px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;width:100%;"><div><div class="set-lbl">My Categories</div><div class="set-sub">Add your own spending categories</div></div><button class="set-action primary" onclick="openAddCatModal()">+ Add</button></div>
+        <div id="customCatList" style="display:flex;flex-wrap:wrap;gap:7px;width:100%;"></div>
+      </div>
+    </div>
+    <div class="settings-group">
       <div class="set-row"><div><div class="set-lbl">Clear All Data</div><div class="set-sub">Permanently delete everything</div></div><button class="set-action danger" onclick="clearAll()">🗑 Clear</button></div>
     </div>
     <div style="text-align:center;font-family:'DM Mono',monospace;font-size:10px;color:var(--faint);margin-top:8px;">VAULT 5.0 · No login · No server · Just you</div>
+  </div>
+
+  <!-- Add Category Modal -->
+  <div class="modal-ov" id="addCatModal" style="display:none;" onclick="closeMO(event,'addCatModal')">
+    <div class="modal-box" style="max-width:340px;">
+      <div class="modal-title">New Category</div>
+      <div style="margin-bottom:12px;">
+        <div class="add-field-label">NAME</div>
+        <input type="text" id="newCatName" placeholder="e.g. Education, Pet care…" maxlength="20" style="width:100%;background:var(--s2);border:1px solid var(--border);border-radius:11px;padding:11px 13px;font-size:14px;color:var(--text);outline:none;box-sizing:border-box;">
+      </div>
+      <div style="margin-bottom:12px;">
+        <div class="add-field-label">ICON (paste any emoji)</div>
+        <input type="text" id="newCatIcon" placeholder="📦" maxlength="4" style="width:72px;background:var(--s2);border:1px solid var(--border);border-radius:11px;padding:11px 13px;font-size:20px;text-align:center;color:var(--text);outline:none;">
+      </div>
+      <div style="margin-bottom:16px;">
+        <div class="add-field-label">COLOR</div>
+        <div id="catColorSwatches" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;"></div>
+      </div>
+      <button onclick="saveCustomCat()" style="width:100%;padding:14px;border-radius:14px;border:none;background:var(--accent);color:#fff;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">Save Category</button>
+      <button onclick="closeModal('addCatModal')" style="width:100%;padding:12px;border-radius:14px;border:1px solid var(--border);background:var(--s2);color:var(--muted);font-family:'Syne',sans-serif;font-size:14px;cursor:pointer;margin-top:8px;">Cancel</button>
+    </div>
   </div>
 
   <!-- FAB -->
@@ -1582,7 +1619,7 @@ function render(){
         </div>
         <div class="tx-day-right">
           ${dayTotalStr?`<span class="tx-day-total ${dayTotalClass}">${dayTotalStr}</span>`:''}
-          <svg class="tx-day-chev${isOpen?' open':''}" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,6 8,11 13,6"/></svg>
+          <svg class="tx-day-chev${isOpen?' open':''}" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6l5 5 5-5"/></svg>
         </div>
       </div>
       <div class="tx-day-entries${isOpen?' open':''}" id="grp-${k}">
@@ -1594,11 +1631,12 @@ function render(){
 
 function toggleDayGroup(k){
   if(_openGroups.has(k)){_openGroups.delete(k);}else{_openGroups.add(k);}
+  const isNowOpen=_openGroups.has(k);
   const entries=document.getElementById('grp-'+k);
-  const hdrs=entries?entries.previousElementSibling:null;
-  const chev=hdrs?hdrs.querySelector('.tx-day-chev'):null;
-  if(entries){entries.className='tx-day-entries'+(_openGroups.has(k)?' open':'');}
-  if(chev){chev.className='tx-day-chev'+(_openGroups.has(k)?' open':'');}
+  const hdr=entries?entries.previousElementSibling:null;
+  const chev=hdr?hdr.querySelector('.tx-day-chev'):null;
+  if(entries){entries.className='tx-day-entries'+(isNowOpen?' open':'');}
+  if(chev){chev.setAttribute('class','tx-day-chev'+(isNowOpen?' open':''));}
 }
 
 
@@ -3333,6 +3371,7 @@ function checkLock(){
 function launchApp(){
   const app=document.getElementById('app');
   if(app)app.style.display='flex';
+  loadCustomCats();
   applyRecurring();
   buildMonthFilter();
   render();
@@ -3364,6 +3403,7 @@ function showPage(id){
   }
   if(id==='page-spend')setTimeout(()=>drawSpend(spendPeriod||'D'),80);
   if(id==='page-settings'){
+    renderCustomCatList();
     const bi=document.getElementById('budgetInput');if(bi)bi.value=budget;
     const bd=document.getElementById('budgetDisplay');if(bd)bd.textContent='₹'+budget.toLocaleString('en-IN');
   }
@@ -3446,6 +3486,7 @@ function viewPP(){alert('Your passphrase:\n\n'+passphrase+'\n\nWrite this down a
 
 function clearForm(){
   setTimeout(refreshAddUI,50);
+  const _taBox=document.getElementById('taSuggestions');if(_taBox)_taBox.innerHTML='';
   ['smartInput','txAmt','txDesc','txNote','txSubDate'].forEach(id=>{
     const el=document.getElementById(id);if(el)el.value='';
   });
@@ -3949,15 +3990,154 @@ function refreshAddUI(){
   refreshCatPills();
   refreshMethodPills();
 }
+function onDescInput(val){
+  refreshAddUI();
+  showTaSuggestions(val);
+}
+function showTaSuggestions(val){
+  const box=document.getElementById('taSuggestions');
+  if(!box)return;
+  const q=(val||'').trim().toLowerCase();
+  if(q.length<2){box.innerHTML='';return;}
+  // Build unique suggestions from past txs — match on desc substring
+  const seen=new Set();
+  const matches=[];
+  const sorted=[...txs].sort((a,b)=>b.ts-a.ts);
+  for(const t of sorted){
+    if(!t.desc)continue;
+    const key=t.desc.trim().toLowerCase();
+    if(seen.has(key))continue;
+    if(key.includes(q)){
+      seen.add(key);
+      matches.push(t);
+      if(matches.length>=5)break;
+    }
+  }
+  if(!matches.length){box.innerHTML='';return;}
+  box.innerHTML=matches.map(t=>{
+    const icon=CAT_ICONS[t.cat]||'✦';
+    const label=`${icon} ${t.desc} · ₹${t.amt.toLocaleString('en-IN')}`;
+    return `<button class="ta-chip" onclick="applyTaSuggestion(${JSON.stringify(t.id)})">${label}</button>`;
+  }).join('');
+}
+function applyTaSuggestion(id){
+  const t=txs.find(x=>x.id===id);
+  if(!t)return;
+  const descEl=document.getElementById('txDesc');
+  const amtEl=document.getElementById('txAmt');
+  const catSel=document.getElementById('txCat');
+  const methSel=document.getElementById('txMethod');
+  if(descEl)descEl.value=t.desc;
+  if(amtEl)amtEl.value=t.amt;
+  if(catSel&&t.cat)catSel.value=t.cat;
+  if(methSel&&t.method)methSel.value=t.method;
+  // Set txType to match
+  if(t.type==='income'&&txType!=='income'){setTxType('income');}
+  else if((t.type==='invest'||INV_CATS.includes(t.cat))&&txType!=='invest'){setTxType('invest');}
+  else if(t.type==='expense'&&txType!=='expense'){setTxType('expense');}
+  refreshCatPills();
+  refreshMethodPills();
+  // Select the matched cat pill
+  setTimeout(()=>{
+    if(catSel&&t.cat){catSel.value=t.cat;refreshCatPills();}
+    const box=document.getElementById('taSuggestions');
+    if(box)box.innerHTML='';
+    refreshAddUI();
+  },50);
+}
+function loadCustomCats(){
+  try{customCats=JSON.parse(localStorage.getItem('v4_customCats')||'[]');}catch(e){customCats=[];}
+  customCats.forEach(c=>{
+    CAT_ICONS[c.name]=c.icon||'✦';
+    CAT_COLORS[c.name]=c.color||'#888';
+  });
+  injectCustomCatOptions();
+}
+function injectCustomCatOptions(){
+  // Inject into hidden txCat select (expense optgroup)
+  const txCatSel=document.getElementById('txCat');
+  if(txCatSel){
+    const expGrp=txCatSel.querySelector('optgroup[label="Expenses"]');
+    if(expGrp){
+      // Remove previously injected custom options
+      expGrp.querySelectorAll('option[data-custom]').forEach(o=>o.remove());
+      customCats.forEach(c=>{const o=document.createElement('option');o.value=c.name;o.textContent=c.name;o.dataset.custom='1';expGrp.appendChild(o);});
+    }
+  }
+  // Inject into editCat select
+  const editCatSel=document.getElementById('editCat');
+  if(editCatSel){
+    editCatSel.querySelectorAll('option[data-custom]').forEach(o=>o.remove());
+    customCats.forEach(c=>{const o=document.createElement('option');o.value=c.name;o.textContent=(c.icon||'✦')+' '+c.name;o.dataset.custom='1';editCatSel.appendChild(o);});
+  }
+  // Inject into subCat select
+  const subCatSel=document.getElementById('subCat');
+  if(subCatSel){
+    subCatSel.querySelectorAll('option[data-custom]').forEach(o=>o.remove());
+    customCats.forEach(c=>{const o=document.createElement('option');o.value=c.name;o.textContent=(c.icon||'✦')+' '+c.name;o.dataset.custom='1';subCatSel.appendChild(o);});
+  }
+}
+const CAT_COLORS_PRESET=['#c87030','#3a6898','#7a68c8','#3a8888','#c04040','#4a7a58','#c04080','#888060'];
+let _newCatColor=CAT_COLORS_PRESET[0];
+function openAddCatModal(){
+  _newCatColor=CAT_COLORS_PRESET[0];
+  const ni=document.getElementById('newCatName');if(ni)ni.value='';
+  const ii=document.getElementById('newCatIcon');if(ii)ii.value='';
+  const sw=document.getElementById('catColorSwatches');
+  if(sw){sw.innerHTML=CAT_COLORS_PRESET.map((c,i)=>`<div class="cat-color-swatch${i===0?' picked':''}" style="background:${c}" onclick="pickCatColor('${c}',this)"></div>`).join('');}
+  openModal('addCatModal');
+  setTimeout(()=>{const n=document.getElementById('newCatName');if(n)n.focus();},300);
+}
+function pickCatColor(c,el){
+  _newCatColor=c;
+  document.querySelectorAll('.cat-color-swatch').forEach(s=>s.classList.remove('picked'));
+  el.classList.add('picked');
+}
+function saveCustomCat(){
+  const name=(document.getElementById('newCatName').value||'').trim();
+  if(!name){alert('Please enter a category name.');return;}
+  if(CAT_ICONS[name]&&!customCats.find(c=>c.name===name)){alert('That category already exists.');return;}
+  const icon=document.getElementById('newCatIcon').value.trim()||'✦';
+  const existing=customCats.findIndex(c=>c.name===name);
+  if(existing>=0)customCats[existing]={name,icon,color:_newCatColor};
+  else customCats.push({name,icon,color:_newCatColor});
+  localStorage.setItem('v4_customCats',JSON.stringify(customCats));
+  CAT_ICONS[name]=icon;CAT_COLORS[name]=_newCatColor;
+  injectCustomCatOptions();
+  renderCustomCatList();
+  closeModal('addCatModal');
+  refreshCatPills();
+  showToast('✅ Category "'+name+'" saved');
+}
+function deleteCustomCat(name){
+  customCats=customCats.filter(c=>c.name!==name);
+  localStorage.setItem('v4_customCats',JSON.stringify(customCats));
+  delete CAT_ICONS[name];delete CAT_COLORS[name];
+  injectCustomCatOptions();
+  renderCustomCatList();
+  refreshCatPills();
+  showToast('🗑 Category removed');
+}
+function renderCustomCatList(){
+  const el=document.getElementById('customCatList');
+  if(!el)return;
+  if(!customCats.length){el.innerHTML='<span style="font-size:12px;color:var(--muted);">No custom categories yet.</span>';return;}
+  el.innerHTML=customCats.map(c=>`<div class="custom-cat-chip"><span style="font-size:15px;">${c.icon||'✦'}</span><span style="flex:1;">${c.name}</span><button class="cc-del" onclick="deleteCustomCat('${c.name}')">✕</button></div>`).join('');
+}
 function refreshCatPills(){
   const container=document.getElementById('catPills');
   const sel=document.getElementById('txCat');
+  const addBtn=document.getElementById('addNewCatBtn');
   if(!container||!sel)return;
   let cats;
   if(txType==='income')cats=[{val:'Income',label:'💰 Income'}];
   else if(txType==='invest')cats=[{val:'SIP',label:'📈 SIP'},{val:'PPF',label:'🏛 PPF'},{val:'EPF',label:'🏢 EPF'},{val:'FD',label:'🏦 FD'},{val:'Stocks',label:'📉 Stocks'},{val:'NPS',label:'🏅 NPS'},{val:'Gold',label:'🪙 Gold'}];
-  else cats=[{val:'Food',label:'🍔 Food'},{val:'Groceries',label:'🛒 Grocery'},{val:'Transport',label:'🚗 Travel'},{val:'Shopping',label:'🛍 Shop'},{val:'Bills',label:'⚡ Bills'},{val:'Health',label:'💊 Health'},{val:'Entertainment',label:'🎬 Fun'},{val:'Other',label:'✦ Other'}];
+  else{
+    cats=[{val:'Food',label:'🍔 Food'},{val:'Groceries',label:'🛒 Grocery'},{val:'Transport',label:'🚗 Travel'},{val:'Shopping',label:'🛍 Shop'},{val:'Bills',label:'⚡ Bills'},{val:'Health',label:'💊 Health'},{val:'Entertainment',label:'🎬 Fun'},{val:'Other',label:'✦ Other'}];
+    customCats.forEach(c=>cats.push({val:c.name,label:(c.icon||'✦')+' '+c.name}));
+  }
   container.innerHTML=cats.map(c=>`<button onclick="selectCat('${c.val}')" class="cat-pill${sel.value===c.val?' selected':''}">${c.label}</button>`).join('');
+  if(addBtn)addBtn.style.display=txType==='expense'?'inline-flex':'none';
   if(txType==='income'&&sel.value!=='Income'){sel.value='Income';}
 }
 function selectCat(val){
