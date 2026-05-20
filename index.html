@@ -185,11 +185,22 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:'Syne',sa
 .cat-fill{height:100%;border-radius:99px;}
 
 /* TX LIST */
-.tx-list{display:flex;flex-direction:column;gap:8px;}
-.tx-day-group{display:flex;flex-direction:column;gap:8px;}
-.tx-day-hdr{display:flex;align-items:center;justify-content:space-between;padding:4px 2px 2px;}
-.tx-day-lbl{font-family:'Syne',sans-serif;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;}
-.tx-day-total{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);}
+.tx-list{display:flex;flex-direction:column;gap:6px;}
+.tx-day-group{display:flex;flex-direction:column;border-radius:14px;border:1px solid var(--border);overflow:hidden;}
+.tx-day-hdr{display:flex;align-items:center;justify-content:space-between;padding:11px 14px;cursor:pointer;user-select:none;background:var(--s1);}
+.tx-day-hdr:active{background:var(--s2);}
+.tx-day-left{display:flex;align-items:center;gap:8px;}
+.tx-day-lbl{font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:var(--txt);text-transform:uppercase;letter-spacing:.05em;}
+.tx-day-count{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);}
+.tx-day-right{display:flex;align-items:center;gap:8px;}
+.tx-day-total{font-family:'DM Mono',monospace;font-size:12px;font-weight:500;}
+.tx-day-total.neg{color:#c0392b;}
+.tx-day-total.pos{color:var(--accent);}
+.tx-day-chev{font-size:10px;color:var(--muted);transition:transform .25s cubic-bezier(.23,1,.32,1);}
+.tx-day-chev.open{transform:rotate(180deg);}
+.tx-day-entries{overflow:hidden;max-height:0;transition:max-height .3s cubic-bezier(.23,1,.32,1);}
+.tx-day-entries.open{max-height:2000px;}
+.tx-entry-sep{height:1px;background:var(--border);margin:0 14px;}
 .tx-item{display:flex;align-items:center;gap:10px;background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:12px;}
 .tx-ico{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;font-size:16px;flex-shrink:0;}
 .tx-info{flex:1;min-width:0;}
@@ -1257,6 +1268,7 @@ const GOAL_COLORS=['#4a7a58','#3a6898','#c87030','#7a68c8','#c04040','#2a8850','
 // ─── STATE ────────────────────────────────────────────────
 let txs=[],blRecords=[],goals=[],budget=10000,passphrase='',activeMonth='All',blTab='oweme',blType='oweme',txType='expense',investType='',selectedEmoji=0,activeGoalId=null,appLocked=false,pinEntry='',storedPin='',lockEnabled=false,biometricEnabled=false;
 let _lastReceivedFrom=null; // {name, amt} for loan repayment prompt
+let _openGroups=new Set(); // keys of expanded day groups (persists across renders)
 
 
 // ═══════════════════════════════════════════════════════════
@@ -1520,14 +1532,20 @@ function render(){
   const _limited=[...ft].sort((a,b)=>b.ts-a.ts).slice(0,60);
   const _groupMap={};const _groupOrder=[];
   _limited.forEach(t=>{const k=_dayKey(t.ts);if(!_groupMap[k]){_groupMap[k]={label:_dayLabel(t.ts),txs:[]};_groupOrder.push(k);}_groupMap[k].txs.push(t);});
+  // Auto-open today's group; also auto-open first group if today has no entries
+  const _todayKey=String(_today.getTime());
+  if(_openGroups.size===0){_openGroups.add(_groupOrder[0]||_todayKey);}
+  if(_groupOrder.includes(_todayKey)&&!_openGroups.has(_todayKey)){_openGroups.add(_todayKey);}
   let _globalIdx=0;
   list.innerHTML=_groupOrder.map(k=>{
     const grp=_groupMap[k];
+    const isOpen=_openGroups.has(k);
     const dayExp=grp.txs.reduce((s,t)=>{const isInv=t.type==='invest'||INV_CATS.includes(t.cat);return t.type==='expense'&&!isInv?s+t.amt:s;},0);
     const dayInc=grp.txs.reduce((s,t)=>t.type==='income'?s+t.amt:s,0);
     const dayNet=dayInc-dayExp;
-    const dayTotalStr=dayExp>0?(dayNet>0?'+₹'+dayNet.toLocaleString('en-IN'):'-₹'+dayExp.toLocaleString('en-IN')):'';
-    const cards=grp.txs.map(t=>{
+    const dayTotalClass=dayNet>=0?'pos':'neg';
+    const dayTotalStr=dayExp>0?(dayNet>=0?'+₹'+dayNet.toLocaleString('en-IN'):'-₹'+dayExp.toLocaleString('en-IN')):'';
+    const cards=grp.txs.map((t,ti)=>{
       const idx=_globalIdx++;
       const isInv=t.type==='invest'||INV_CATS.includes(t.cat);
       const amtCol=t.type==='income'?'pos':isInv?'inv':'neg';
@@ -1539,7 +1557,8 @@ function render(){
       const noteChip=t.note?`<span class="note-chip">💬 ${t.note}</span>`:'';
       const icon=CAT_ICONS[t.cat]||'✦';
       const col=CAT_COLORS[t.cat]||'#888';
-      return `<div class="tx-item" style="animation:fadeUp .25s ${idx*.04}s ease both">
+      const sep=ti>0?'<div class="tx-entry-sep"></div>':'';
+      return `${sep}<div class="tx-item" style="border:none;border-radius:0;animation:fadeUp .2s ${idx*.04}s ease both">
         <div class="tx-ico" style="background:${col}22">${icon}</div>
         <div class="tx-info">
           <div class="tx-name">${t.desc}</div>
@@ -1556,10 +1575,30 @@ function render(){
       </div>`;
     }).join('');
     return `<div class="tx-day-group">
-      <div class="tx-day-hdr"><span class="tx-day-lbl">${grp.label}</span>${dayTotalStr?`<span class="tx-day-total">${dayTotalStr}</span>`:''}</div>
-      ${cards}
+      <div class="tx-day-hdr" onclick="toggleDayGroup('${k}')">
+        <div class="tx-day-left">
+          <span class="tx-day-lbl">${grp.label}</span>
+          <span class="tx-day-count">${grp.txs.length} ${grp.txs.length===1?'entry':'entries'}</span>
+        </div>
+        <div class="tx-day-right">
+          ${dayTotalStr?`<span class="tx-day-total ${dayTotalClass}">${dayTotalStr}</span>`:''}
+          <span class="tx-day-chev${isOpen?' open':''}">▼</span>
+        </div>
+      </div>
+      <div class="tx-day-entries${isOpen?' open':''}" id="grp-${k}">
+        ${cards}
+      </div>
     </div>`;
   }).join('');
+}
+
+function toggleDayGroup(k){
+  if(_openGroups.has(k)){_openGroups.delete(k);}else{_openGroups.add(k);}
+  const entries=document.getElementById('grp-'+k);
+  const hdrs=entries?entries.previousElementSibling:null;
+  const chev=hdrs?hdrs.querySelector('.tx-day-chev'):null;
+  if(entries){entries.className='tx-day-entries'+(_openGroups.has(k)?' open':'');}
+  if(chev){chev.className='tx-day-chev'+(_openGroups.has(k)?' open':'');}
 }
 
 
@@ -3519,6 +3558,21 @@ function addTransaction(){
   }
 
   saveTx({id:Date.now(),amt,desc,cat,method,note,type:finalType,recurring:rec,isSub,subDate,ts});
+  // After saving income — check if this was a loan repayment
+  if(finalType==='income'&&_lastReceivedFrom){
+    const {name,amt:rAmt}=_lastReceivedFrom;
+    const match=blRecords.find(r=>r.type==='oweme'&&!r.settled&&r.name.toLowerCase()===name.toLowerCase());
+    const titleEl=document.getElementById('repayTitle');
+    const descEl2=document.getElementById('repayDesc');
+    if(titleEl)titleEl.textContent='Repayment from '+name+'?';
+    if(descEl2){
+      if(match)descEl2.innerHTML=`You have <strong>₹${match.amt.toLocaleString('en-IN')}</strong> lent to <strong>${match.name}</strong>.<br>Is this ₹${rAmt.toLocaleString('en-IN')} a repayment?`;
+      else descEl2.innerHTML=`You received <strong>₹${rAmt.toLocaleString('en-IN')}</strong> from <strong>${name}</strong>.<br>Was this a loan repayment?`;
+    }
+    setTimeout(()=>openModal('repayModal'),350);
+  } else {
+    _lastReceivedFrom=null;
+  }
 }
 
 function saveTx(tx){
@@ -3815,9 +3869,7 @@ function confirmRepayment(){
   if(!_lastReceivedFrom){return;}
   const {name,amt:rAmt}=_lastReceivedFrom;
   _lastReceivedFrom=null;
-  // Add income entry to main transaction list
-  txs.unshift({id:Date.now(),amt:rAmt,desc:'Repayment from '+name,cat:'Income',method:'UPI',note:'Lend settlement',type:'income',ts:Date.now()});
-  // Auto-settle matching lend record
+  // Income entry already saved — just settle the lend record
   const match=blRecords.find(r=>r.type==='oweme'&&!r.settled&&r.name.toLowerCase()===name.toLowerCase());
   if(match){
     if(!match.payments)match.payments=[];
@@ -3826,11 +3878,10 @@ function confirmRepayment(){
     const totalPaid=match.payments.reduce((s,p)=>s+p.amt,0);
     match.amt=Math.max(0,match.originalAmt-totalPaid);
     if(match.amt<=0)match.settled=true;
-    save();buildMonthFilter();render();renderBL();
-    showToast('💰 ₹'+rAmt.toLocaleString('en-IN')+' from '+name+' · lend record updated');
+    save();renderBL();
+    showToast('✅ '+name+' settled · ₹'+rAmt.toLocaleString('en-IN')+' repayment recorded');
   } else {
-    save();buildMonthFilter();render();
-    showToast('💰 ₹'+rAmt.toLocaleString('en-IN')+' from '+name+' · added as income');
+    showToast('💰 Saved as income · no matching lend record for '+name);
   }
 }
 
