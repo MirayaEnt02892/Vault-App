@@ -1747,6 +1747,13 @@ async function load(){
   await _migrateFromLocalStorage();
   // After migration: passphrase may be set in-memory from old plaintext localStorage
   // PPENC: case: passphrase will be set by checkPin() when user enters PIN
+  // FIX: if no PIN set, load plaintext passphrase from IDB (no-PIN flow)
+  if(!passphrase){
+    const stored=await VaultDB.get('v4_pp')||'';
+    if(stored && !stored.startsWith('PPENC:')){
+      passphrase=stored; // plaintext — no PIN set, load directly
+    }
+  }
 }
 async function loadData(){await initVaultCrypto();await _doLoad();}
 
@@ -1892,8 +1899,8 @@ async function submitLockPassphrase(){
   hideLockPassphraseEntry();
   document.getElementById('lockScreen').classList.remove('show');
   appLocked=false;
-  // FIX 3: passphrase stays in-memory only — no plaintext stored
-  await VaultDB.delete('v4_pp'); // remove old PPENC: since PIN is gone
+  // FIX: PIN removed — store passphrase as plaintext in IDB so it persists without PIN
+  await VaultDB.set('v4_pp', passphrase);
   await initVaultCrypto();
   await _doLoad();
   launchApp();
@@ -2038,7 +2045,7 @@ async function toggleLockSetting(){
     // FIX 5: native confirm() replaced with modal
     showConfirm('Disable App Lock','Remove PIN? Your passphrase stays in memory only until you set a new PIN.',async()=>{
       lockEnabled=false;storedPin='';
-      await VaultDB.delete('v4_pp'); // FIX 2+3: remove PPENC: from IDB
+      if(passphrase)await VaultDB.set('v4_pp',passphrase); // FIX: keep as plaintext without PIN
       saveSettings();updateLockUI();
     });
   }else{openModal('setPinModal');}
@@ -4432,9 +4439,13 @@ function showPPScreen(){
 async function confirmPassphrase(){
   const ppScr=document.getElementById('ppScreen');
   if(ppScr)ppScr.classList.remove('show');
-  await initVaultCrypto(); // FIX: derive vault key from passphrase so encryption activates
-  await _doSave();         // FIX: re-save existing data now encrypted
-  updateEncUI();           // FIX: update encryption status indicator
+  // FIX: if no PIN, persist passphrase as plaintext in IDB so it survives app close
+  if(passphrase && !storedPin){
+    await VaultDB.set('v4_pp', passphrase);
+  }
+  await initVaultCrypto(); // derive vault key so encryption activates
+  await _doSave();         // re-save existing data now encrypted
+  updateEncUI();           // update encryption indicator
   checkLock();
 }
 
@@ -4559,7 +4570,7 @@ function toggleLock(){
     // FIX 5: native confirm() replaced with modal
     showConfirm('Disable App Lock','Remove PIN? Your passphrase stays in memory only until you set a new PIN.',async()=>{
       lockEnabled=false;storedPin='';
-      await VaultDB.delete('v4_pp'); // FIX 2+3
+      if(passphrase)await VaultDB.set('v4_pp',passphrase); // FIX: keep as plaintext without PIN
       saveSettings();
       updateLockUI();
     });
