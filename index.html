@@ -3338,8 +3338,8 @@ function showConfirm(title,msg,onConfirm,onCancel,okTxt,cancelTxt){
   const ok=document.getElementById('confirmOkBtn');
   const ca=document.getElementById('confirmCancelBtn');
   if(!m||!t||!b||!ok||!ca){
-    // Fallback if modal not in DOM yet
-    if(window.confirm(msg)){if(onConfirm)onConfirm();}else{if(onCancel)onCancel();}
+    // FIX 5: modal not found — do not fall back to native confirm()
+    console.warn('VAULT: confirmModal not in DOM');
     return;
   }
   t.textContent=title||'Confirm';
@@ -3739,7 +3739,7 @@ function drawSpendDonut(periodTxs){
   if(leg)leg.innerHTML=data.map(([cat,val])=>`
     <div style="display:flex;align-items:center;gap:6px;margin-bottom:7px;">
       <div style="width:9px;height:9px;border-radius:3px;background:${CAT_COLORS[cat]||'#888'};flex-shrink:0;"></div>
-      <div style="font-size:12px;flex:1;">${CAT_ICONS[cat]||'✦'} ${cat}</div>
+      <div style="font-size:12px;flex:1;">${CAT_ICONS[cat]||'✦'} ${_esc(cat)}</div> <!-- FIX 4c -->
       <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);">₹${val.toLocaleString('en-IN')}</div>
     </div>`).join('');
 }
@@ -3755,8 +3755,8 @@ function renderSpendInv(periodInv){
     <div class="spend-row">
       <div class="spend-row-ico" style="background:rgba(77,166,255,.1);">${INV_ICONS[t.cat]||'📈'}</div>
       <div class="spend-row-info">
-        <div class="spend-row-name">${t.desc}</div>
-        <div class="spend-row-sub">${t.cat} · ${new Date(t.ts).toLocaleDateString('en-IN',{day:'numeric',month:'short'})}</div>
+        <div class="spend-row-name">${_esc(t.desc)}</div> <!-- FIX 4c -->
+        <div class="spend-row-sub">${_esc(t.cat)} · ${new Date(t.ts).toLocaleDateString('en-IN',{day:'numeric',month:'short'})}</div> <!-- FIX 4c -->
       </div>
       <div class="spend-row-right">
         <div class="spend-row-amt" style="color:var(--blue);">₹${t.amt.toLocaleString('en-IN')}</div>
@@ -3784,7 +3784,7 @@ function renderSpendCats(periodTxs){
     return `<div class="spend-row">
       <div class="spend-row-ico" style="background:${col}22;">${icon}</div>
       <div style="flex:1;min-width:0;">
-        <div class="spend-row-name">${cat}</div>
+        <div class="spend-row-name">${_esc(cat)}</div> <!-- FIX 4c -->
         <div class="spend-row-bar"><div class="spend-row-fill" style="width:${pct}%;background:${col};"></div></div>
       </div>
       <div class="spend-row-right">
@@ -3823,7 +3823,7 @@ function renderSpendMethods(periodTxs){
     return `<div class="spend-row">
       <div class="spend-row-ico" style="background:${def.col}22;">${def.icon}</div>
       <div style="flex:1;min-width:0;">
-        <div class="spend-row-name">${method}</div>
+        <div class="spend-row-name">${_esc(method)}</div> <!-- FIX 4c -->
         <div class="spend-row-sub">${cnt} transaction${cnt!==1?'s':''}</div>
         <div class="spend-row-bar"><div class="spend-row-fill" style="width:${pct}%;background:${def.col};"></div></div>
       </div>
@@ -3966,7 +3966,7 @@ function drawDonut(){
   leg.innerHTML=data.map(d=>`
     <div style="display:flex;align-items:center;gap:7px;margin-bottom:6px;">
       <div style="width:10px;height:10px;border-radius:3px;background:${d.col};flex-shrink:0;"></div>
-      <div style="font-size:12px;flex:1;color:var(--text);">${d.cat}</div>
+      <div style="font-size:12px;flex:1;color:var(--text);">${_esc(d.cat)}</div> <!-- FIX 4c -->
       <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);">₹${d.val.toLocaleString('en-IN')}</div>
     </div>`).join('');
 }
