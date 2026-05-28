@@ -1598,7 +1598,7 @@ const VaultDB={
 // Plaintext passphrase is NEVER re-persisted (FIX 3)
 async function _migrateFromLocalStorage(){
   const keys=[
-    'v4_txs','v4_bl','v4_goals','v4_budget','v4_pin',
+    'v4_txs','v4_bl','v4_goals','v4_budget','v4_pin','v4_onboarded',
     'v4_pp_check','v4_pp_salt','v4_salt','v4_enc','v4_lock',
     'v4_bio_enabled','v4_name','v4_emis','v4_customCats',
     'v4_bio_uid','v4_bio_cred'
@@ -4373,8 +4373,8 @@ function obNext(){
 
 function skipOnboarding(){finishOnboarding();}
 
-function finishOnboarding(){
-  localStorage.setItem('v4_onboarded','1');
+async function finishOnboarding(){
+  await VaultDB.set('v4_onboarded','1'); // FIX: persist in IDB, not localStorage (Safari clears localStorage)
   // Save budget chosen on slide 3
   if(_obBudgetVal>0){
     budget=_obBudgetVal;
@@ -4429,9 +4429,12 @@ function showPPScreen(){
   if(ppScr)ppScr.classList.add('show');
 }
 
-function confirmPassphrase(){
+async function confirmPassphrase(){
   const ppScr=document.getElementById('ppScreen');
   if(ppScr)ppScr.classList.remove('show');
+  await initVaultCrypto(); // FIX: derive vault key from passphrase so encryption activates
+  await _doSave();         // FIX: re-save existing data now encrypted
+  updateEncUI();           // FIX: update encryption status indicator
   checkLock();
 }
 
@@ -4960,7 +4963,7 @@ function saveSubscription(){
   await loadData();
 
   // Show onboarding for first-time users (before splash)
-  if(!passphrase && !localStorage.getItem('v4_onboarded')){
+  if(!passphrase && !await VaultDB.get('v4_onboarded')){ // FIX: read from IDB
     showOnboarding();
   }
 
