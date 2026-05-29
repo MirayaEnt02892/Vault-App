@@ -1064,6 +1064,7 @@ if('serviceWorker' in navigator && false /* removed by FIX 8 */
     <div style="background:rgba(255,200,50,.08);border:1px solid rgba(200,160,30,.25);border-radius:11px;padding:10px 14px;margin-bottom:12px;font-size:11px;color:var(--muted);line-height:1.5;">⚠️ Never include your passphrase or account details in support messages.</div>
     <div class="settings-group">
       <div class="set-row"><div><div class="set-lbl">📢 App Notices</div><div class="set-sub">Check for updates &amp; announcements (default: off)</div></div><button class="set-action" id="noticeToggleBtn" onclick="toggleNotices()">Off</button></div>
+      <div class="set-row"><div><div class="set-lbl">🔔 Daily Reminder</div><div class="set-sub" id="reminderSub">Nudge to log expenses each day</div></div><button class="set-action" id="reminderBtn" onclick="toggleDailyReminder()">Off</button></div>
       <div class="set-row"><div><div class="set-lbl">🔐 Privacy &amp; Security</div><div class="set-sub">How your data is stored and protected</div></div><button class="set-action" onclick="showPrivacyModal()">View</button></div>
     </div>
     <div class="settings-group">
@@ -1306,7 +1307,7 @@ if('serviceWorker' in navigator && false /* removed by FIX 8 */
     <div class="modal-drag"></div>
     <div class="modal-ttl">Restore from Backup</div>
     <div class="field"><label>Your passphrase (required to decrypt backup)</label><input type="text" id="restoreInput" placeholder="word1 word2 word3 word4 word5 word6" autocomplete="off" autocorrect="off" spellcheck="false"></div>
-    <div class="field"><label>Upload .vault backup file</label><input type="file" id="restoreFile" accept=".vault,.json" style="background:var(--s2);border:1px solid var(--border);border-radius:11px;padding:10px;width:100%;color:var(--text);font-size:12px;"></div>
+    <div class="field"><label>Upload .vault backup file</label><input type="file" id="restoreFile" accept="*" style="background:var(--s2);border:1px solid var(--border);border-radius:11px;padding:10px;width:100%;color:var(--text);font-size:12px;"></div>
     <div class="modal-actions"><button class="btn-cancel" onclick="closeModal('restoreModal')">Cancel</button><button class="btn-save" onclick="restoreData()">Restore</button></div>
   </div>
 </div>
@@ -3325,6 +3326,74 @@ function dismissNotice(){
 }
 
 // FIX 6: App Notices opt-in toggle
+// ── DAILY REMINDER ────────────────────────────────────────────────────────
+async function updateReminderBtn(){
+  const btn=document.getElementById('reminderBtn');
+  const sub=document.getElementById('reminderSub');
+  if(!btn)return;
+  const enabled=await VaultDB.get('v4_reminder')==='1';
+  const perm='Notification' in window?Notification.permission:'denied';
+  if(enabled&&perm==='granted'){
+    btn.textContent='On';btn.classList.add('primary');
+    if(sub)sub.textContent='Active — notifies if no expenses logged';
+  } else if(perm==='denied'){
+    btn.textContent='Blocked';btn.classList.remove('primary');
+    if(sub)sub.textContent='Allow notifications in device settings';
+  } else {
+    btn.textContent='Off';btn.classList.remove('primary');
+    if(sub)sub.textContent='Nudge to log expenses each day';
+  }
+}
+
+async function toggleDailyReminder(){
+  if(!('Notification' in window)){showToast('Notifications not supported on this browser.');return;}
+  const enabled=await VaultDB.get('v4_reminder')==='1';
+  if(enabled){
+    await VaultDB.set('v4_reminder','0');
+    updateReminderBtn();
+    showToast('Daily reminder turned off.');
+    return;
+  }
+  if(Notification.permission==='denied'){
+    showToast('Notifications blocked. Enable them in Settings → Safari → VAULT.');
+    return;
+  }
+  const perm=await Notification.requestPermission();
+  if(perm==='granted'){
+    await VaultDB.set('v4_reminder','1');
+    showToast('Reminder on! You’ll be nudged if no expenses logged today.');
+    checkDailyReminder(true);
+  } else {
+    showToast('Permission not granted — reminder not set.');
+  }
+  updateReminderBtn();
+}
+
+async function checkDailyReminder(justEnabled=false){
+  if(!('Notification' in window))return;
+  if(Notification.permission!=='granted')return;
+  const enabled=await VaultDB.get('v4_reminder')==='1';
+  if(!enabled)return;
+  const todayStr=new Date().toDateString();
+  const hasToday=(txs||[]).some(t=>new Date(t.ts).toDateString()===todayStr);
+  if(hasToday)return;
+  const hour=new Date().getHours();
+  const sw=navigator.serviceWorker&&navigator.serviceWorker.controller;
+  if(justEnabled||hour>=18){
+    if(sw){
+      sw.postMessage({type:'VAULT_REMINDER',delayMs:0,body:"You haven’t logged any expenses today. Tap to open VAULT 💰"});
+    } else {
+      new Notification('VAULT 💰',{body:"You haven’t logged any expenses today.",tag:'vault-daily-reminder'});
+    }
+  } else {
+    const now=new Date();
+    const msUntil8pm=new Date(now.getFullYear(),now.getMonth(),now.getDate(),20,0,0)-now;
+    if(msUntil8pm>0&&sw){
+      sw.postMessage({type:'VAULT_REMINDER',delayMs:msUntil8pm,body:"Evening check-in — log today’s expenses! 💰"});
+    }
+  }
+}
+
 function toggleNotices(){
   const enabled=localStorage.getItem('v4_notices_enabled')==='1';
   localStorage.setItem('v4_notices_enabled',enabled?'0':'1');
@@ -4504,6 +4573,7 @@ function showPage(id){
     const bi=document.getElementById('budgetInput');if(bi)bi.value=budget;
     const bd=document.getElementById('budgetDisplay');if(bd)bd.textContent='₹'+budget.toLocaleString('en-IN');
     updateNoticeToggleUI(); // FIX 6
+    updateReminderBtn();
   }
   setTimeout(()=>{const pg=document.getElementById(id);if(pg)pg.scrollTop=0;},0);
 }
@@ -4972,6 +5042,9 @@ function saveSubscription(){
 
   // Init encryption key + load encrypted data
   await loadData();
+
+  // Check daily reminder (shows notification if no txs today)
+  checkDailyReminder();
 
   // Show onboarding for first-time users (before splash)
   if(!passphrase && !await VaultDB.get('v4_onboarded')){ // FIX: read from IDB
@@ -5472,6 +5545,20 @@ self.addEventListener('fetch',e=>{
     );
   }
   // Non-navigation requests pass through unmodified
+});
+self.addEventListener('message',e=>{
+  if(!e.data||e.data.type!=='VAULT_REMINDER')return;
+  const delay=e.data.delayMs||0;
+  const body=e.data.body||"Don't forget to log today's expenses!";
+  setTimeout(()=>{
+    self.registration.showNotification('VAULT 💰',{
+      body:body,
+      icon:'./icon-192.png',
+      badge:'./icon-192.png',
+      tag:'vault-daily-reminder',
+      renotify:true
+    });
+  },delay);
 });
 `;
   const _swBlob=new Blob([_swCode],{type:'application/javascript'});
